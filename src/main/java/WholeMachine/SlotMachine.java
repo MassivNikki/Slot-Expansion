@@ -83,10 +83,10 @@ public class SlotMachine {
     private void setupAutoSpinUpgrade() {
         JLabel autoSpinPriceLabel = new JLabel("500000");
         autoSpinPriceLabel.setForeground(Color.YELLOW);
-        autoSpinPriceLabel.setBounds(startXCord + 321, startYCord + 15, 50, 20);
+        autoSpinPriceLabel.setBounds(startXCord + 371, startYCord + 15, 50, 20);
         mainFrame.add(autoSpinPriceLabel);
         CasinoButton autoSpinButton = new CasinoButton("<html>Activate<br>AutoSpin</html>");
-        autoSpinButton.setBounds(startXCord + 251, startYCord, 60, 50);
+        autoSpinButton.setBounds(startXCord + 301, startYCord, 60, 50);
         autoSpinButton.addActionListener(e -> {
             if (Integer.parseInt(autoSpinPriceLabel.getText()) <= PlayerManager.getCoins()) {
                 PlayerManager.setCoins(PlayerManager.getCoins() - Integer.parseInt(autoSpinPriceLabel.getText()));
@@ -113,10 +113,10 @@ public class SlotMachine {
 
         JLabel autoSpinCooldownUpgradePriceLabel = new JLabel("50000");
         autoSpinCooldownUpgradePriceLabel.setForeground(Color.YELLOW);
-        autoSpinCooldownUpgradePriceLabel.setBounds(startXCord + 251, startYCord + 33, 50, 20);
+        autoSpinCooldownUpgradePriceLabel.setBounds(startXCord + 301, startYCord + 33, 50, 20);
         mainFrame.add(autoSpinCooldownUpgradePriceLabel);
         CasinoButton autoSpinCooldownUpgradeBtt = new CasinoButton("-50ms");
-        autoSpinCooldownUpgradeBtt.setBounds(startXCord + 251, startYCord + 17, 50, 20);
+        autoSpinCooldownUpgradeBtt.setBounds(startXCord + 301, startYCord + 17, 50, 20);
         autoSpinCooldownUpgradeBtt.addActionListener(e -> {
             if (autoCooldown > 200) {
                 if (PlayerManager.getCoins() > Integer.parseInt(autoSpinCooldownUpgradePriceLabel.getText())) {
@@ -152,7 +152,7 @@ public class SlotMachine {
     }
 
     private void setupXpLabels() {
-        slotLevelLabel.setForeground(Color.ORANGE);
+        slotLevelLabel.setForeground(Color.GREEN);
         slotLevelLabel.setBounds(startXCord + progressBarWidth / 2, startYCord - 45, 50, 20);
         slotLevelLabel.setFont(new Font("Arial", Font.BOLD, 15));
         mainFrame.add(slotLevelLabel);
@@ -190,7 +190,7 @@ public class SlotMachine {
 
         CasinoButton stakeDownBtt = new CasinoButton("\uD83D\uDD3D");
         stakeDownBtt.setFont(stakeUpBtt.getFont().deriveFont(22f));
-        stakeDownBtt.setBounds(startXCord + 120, startYCord + 30, 20, 20);
+        stakeDownBtt.setBounds(startXCord + 140, startYCord, 20, 20);
         stakeDownBtt.addActionListener(e -> {
             //es kann nur geändert werden, wenn man genügend coins hat und keine freispiele sind
             if (!slotGrid.isFreeSpinsActivated()) {
@@ -208,11 +208,21 @@ public class SlotMachine {
         });
         mainFrame.add(stakeDownBtt);
 
+        CasinoButton maxStakeBtt = new CasinoButton("max");
+        maxStakeBtt.setBounds(startXCord + 160, startYCord, 30, 20);
+        maxStakeBtt.addActionListener(e -> {
+            if (!slotGrid.isFreeSpinsActivated()) {
+                spinAmountPerLane = (long) Math.pow(3, slotLevel - 1);
+                spinAmount = spinAmountPerLane * slotGrid.getWinLanes();
+                spinAmountLabel.setText(String.valueOf(spinAmount));
+            }
+        });
+        mainFrame.add(maxStakeBtt);
     }
 
     private void setupSpinButton() {
         spinBtt = new CasinoButton("<html>Spin(" + manualCooldown + "ms)<br>Auto(" + autoCooldown + "ms)</html>");
-        spinBtt.setBounds(startXCord + 150, startYCord, 100, 35);
+        spinBtt.setBounds(startXCord + 200, startYCord, 100, 35);
         spinBtt.addActionListener(e -> {
             if (!spinCooldownActivated) {
                 spinCooldownActivated = true;
@@ -225,11 +235,11 @@ public class SlotMachine {
 
         JLabel spinCooldownUpgradeLabel = new JLabel("500");
         spinCooldownUpgradeLabel.setForeground(Color.YELLOW);
-        spinCooldownUpgradeLabel.setBounds(startXCord + 190, startYCord + 35, 50, 15);
+        spinCooldownUpgradeLabel.setBounds(startXCord + 240, startYCord + 35, 50, 15);
         mainFrame.add(spinCooldownUpgradeLabel);
         CasinoButton autoSpinCooldownUpgradeBtt = new CasinoButton("-50ms");
         autoSpinCooldownUpgradeBtt.setMargin(new Insets(0, 0, 0, 0));
-        autoSpinCooldownUpgradeBtt.setBounds(startXCord + 150, startYCord + 35, 40, 15);
+        autoSpinCooldownUpgradeBtt.setBounds(startXCord + 200, startYCord + 35, 40, 15);
         autoSpinCooldownUpgradeBtt.setBorder(BorderFactory.createEmptyBorder());
         autoSpinCooldownUpgradeBtt.addActionListener(e -> {
             if (manualCooldown > 300) {

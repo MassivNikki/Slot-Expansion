@@ -11,7 +11,6 @@ public class PlayerManager {
     private static long coins;
     private static JLabel coinAmountLabel;
     private static JFrame mainFrame;
-    private static Border normalBorder = BorderFactory.createLineBorder(Color.black);
 
 
     public static void setMainFrame(JFrame mainFrame) {
@@ -22,7 +21,8 @@ public class PlayerManager {
 
     private static void generateCoinStuff() {
         coinAmountLabel = new JLabel();
-        coinAmountLabel.setForeground(Color.white);
+        coinAmountLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        coinAmountLabel.setForeground(Color.ORANGE);
         mainFrame.add(coinAmountLabel);
     }
 
