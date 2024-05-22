@@ -1,5 +1,8 @@
 package CasinoStuff;
 
+import WholeMachine.Pet;
+import WholeMachine.SlotMachine;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
@@ -7,7 +10,6 @@ import java.awt.event.WindowEvent;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Random;
 
 public class Application {
 
@@ -66,10 +68,9 @@ public class Application {
                 generateSlotMachine(currentLine);
                 if (currentLine == 0) {
                     PlayerManager.setCoins(Integer.parseInt(values[0]));
-                    PlayerManager.setPlayerLevel(Integer.parseInt(values[1]));
-                    PlayerManager.setPlayerXp(Integer.parseInt(values[2]));
-                    Pet.setPet(Integer.parseInt(values[10]));
                 }
+                machines.get(currentLine).setSlotLevel(Integer.parseInt(values[1]));
+                machines.get(currentLine).setSlotXp(Integer.parseInt(values[2]));
                 machines.get(currentLine).getSlotGrid().setAdditionalSevenSymbolChance(Integer.parseInt(values[3]));
                 machines.get(currentLine).getSlotGrid().setAdditionalTier4SymbolChance(Integer.parseInt(values[4]));
                 machines.get(currentLine).getSlotGrid().setAdditionalTier3SymbolChance(Integer.parseInt(values[5]));
@@ -77,6 +78,7 @@ public class Application {
                 machines.get(currentLine).getSlotGrid().setTier1SymbolChance(Integer.parseInt(values[7]));
                 machines.get(currentLine).getSlotGrid().setAdditionalX2SymbolChance(Integer.parseInt(values[8]));
                 machines.get(currentLine).getUpgradeArea().setAddedGrids(Integer.parseInt(values[9]));
+                machines.get(currentLine).setPet(new Pet(Integer.parseInt(values[10])));
                 machines.get(currentLine).getSlotGrid().setRowAmount(Integer.parseInt(values[11]));
                 machines.get(currentLine).instantiate();
                 currentLine++;
@@ -93,14 +95,14 @@ public class Application {
                 writer.print(0 + "," + 1 + "," + 0 + "," + 0 + "," + 0 + "," + 0 + "," + 0 + "," + 46 + "," + 0 + "," + 0 + "," + -1 + "," + 3);
             } else {
                 for (SlotMachine machine : machines) {
-                    writer.println(PlayerManager.getCoins() + "," + PlayerManager.getPlayerLevel() + "," + PlayerManager.getPlayerXp()
+                    writer.println(PlayerManager.getCoins() + "," + machine.getSlotLevel() + "," + machine.getSlotXp()
                             + "," + machine.getSlotGrid().getAdditionalSevenSymbolChance()
                             + "," + machine.getSlotGrid().getAdditionalTier4SymbolChance()
                             + "," + machine.getSlotGrid().getAdditionalTier3SymbolChance()
                             + "," + machine.getSlotGrid().getAdditionalTier2SymbolChance()
                             + "," + machine.getSlotGrid().getTier1SymbolChance()
                             + "," + machine.getSlotGrid().getAdditionalX2SymbolChance()
-                            + "," + machine.getUpgradeArea().getAddedGrids() + "," + Pet.petTier + ","+ machine.getSlotGrid().getRowAmount());
+                            + "," + machine.getUpgradeArea().getAddedGrids() + "," + machine.getPetTier() + ","+ machine.getSlotGrid().getRowAmount());
                 }
             }
 
@@ -113,9 +115,9 @@ public class Application {
         loadData();
 
         if(slotAmount < 6){
-            mainFrame.setSize((slotAmount-(slotAmount/5))*350 + 100,(1+(slotAmount/8))*450+100);
+            mainFrame.setSize((slotAmount-(slotAmount/5))*330 + 100,(1+(slotAmount/8))*450+100);
         }
-        PlayerManager.arrangeLabelsBasedOnSize();
+        //PlayerManager.arrangeLabelsBasedOnSize();
         PlayerManager.rearrangeCoinLabel();
         mainFrame.setVisible(true);
     }
@@ -136,7 +138,7 @@ public class Application {
                         mainFrame.setSize((slotAmount-(slotAmount/5))*350 + 100,(1+(slotAmount/5))*450+100);
                     }
                     generateSlotMachine(slotAmount - 1);
-                    PlayerManager.arrangeLabelsBasedOnSize();
+                    //PlayerManager.arrangeLabelsBasedOnSize();
                     PlayerManager.rearrangeCoinLabel();
                     machines.get(slotAmount - 1).instantiate();
                     mainFrame.repaint();

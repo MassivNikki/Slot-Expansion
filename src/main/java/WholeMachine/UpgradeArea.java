@@ -1,9 +1,8 @@
-package UpgradeStuff;
+package WholeMachine;
 
 import CasinoStuff.Application;
 import CasinoStuff.CasinoButton;
 import CasinoStuff.PlayerManager;
-import CasinoStuff.SlotGrid;
 
 import javax.swing.*;
 import java.awt.*;

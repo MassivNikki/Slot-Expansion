@@ -1,4 +1,7 @@
-package CasinoStuff;
+package WholeMachine;
+
+import CasinoStuff.Application;
+import CasinoStuff.PlayerManager;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -36,7 +39,7 @@ public class SlotGrid {
     private int slotMultiplier = 1;
 
     private JLabel freeSpinsLabel;
-
+    private SlotMachine machine;
     private int rand;
     private int[] tier3SlotGrid = new int[15];
     private int[] tier2SlotGrid = new int[12];
@@ -53,10 +56,11 @@ public class SlotGrid {
     private List<int[]> currentAdditionalWinningGrid;
 
 
-    public SlotGrid(JFrame mainFrame, int startXCord, int startYCord) {
+    public SlotGrid(JFrame mainFrame, int startXCord, int startYCord, SlotMachine machine) {
         this.mainFrame = mainFrame;
         this.startXCord = startXCord;
         this.startYCord = startYCord + 60;
+        this.machine = machine;
         currentSlotGrid = tier1SlotGrid;
         currentWin3Symbol = tier1Win3Symbol;
         winningGrids = getTier1WinningGrids();
@@ -422,7 +426,7 @@ public class SlotGrid {
     }
 
     public long spinSlotMachine(long spinAmount) {
-        PlayerManager.setPlayerXp(PlayerManager.getPlayerXp() + spinAmount);
+        machine.setSlotXp(machine.getSlotXp() + spinAmount);
         //jede zelle bekommt einen wert,wodurch das bild dazu reinkommt
         for (int i = 0; i < currentSlotGrid.length; i++) {
             rand = calculateSlotSymbol(i);
@@ -431,7 +435,7 @@ public class SlotGrid {
         }
         //falls keine free spins sind werden coins abgezogen vom geld und der player keirgt es als xp
         if (!freeSpinsActivated) {
-            if (spinAmount / getWinLanes() > PlayerManager.getMinimumCoinsPerLane()) {
+            if (spinAmount / getWinLanes() > machine.getMinimumCoinsPerLane()) {
                 PlayerManager.setCoins(PlayerManager.getCoins() - spinAmount);
             }
         } else {
@@ -538,7 +542,7 @@ public class SlotGrid {
                 if (x2Amount != 0) {
                     tempCoinWin *= x2Amount * 2L;
                 }
-                tempCoinWin *= Pet.getMulti();
+                tempCoinWin *= machine.getPet().getMulti();
                 PlayerManager.setCoins(PlayerManager.getCoins() + tempCoinWin);
                 //damit der gewinn am ende aller muster angezeigt werden kann
                 wholeSpinWin += tempCoinWin;
