@@ -29,11 +29,11 @@ public class UpgradeArea {
     protected JLabel additionalGridsPriceLabel = new JLabel();
     protected JLabel additionalGridsLabel = new JLabel();
     protected CasinoButton additionalWinningGridsBtt = new CasinoButton();
-    private JFrame mainFrame;
-    private SlotGrid slotGrid;
-    private UpgradeManager upgradeManager;
-    private int startYCord;
-    private int startXCord;
+    private final JFrame mainFrame;
+    private final SlotGrid slotGrid;
+    private final UpgradeManager upgradeManager;
+    private final int startYCord;
+    private final int startXCord;
     private int totalUpgradeAmount = 0;
 
     public UpgradeArea(JFrame mainFrame, SlotGrid slotGrid, int startXCord, int startYCord) {

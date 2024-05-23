@@ -13,9 +13,9 @@ import java.util.Arrays;
 
 public class Application {
 
-    private boolean resetData = false;
-    private String saveDataPath = "SaveData";
-    private JFrame mainFrame;
+    private final boolean resetData = true;
+    private final String saveDataPath = "SaveData";
+    private final JFrame mainFrame;
     public static int maxSevenChance = 10;
     public static int maxTier4Chance = 20;
     public static int maxTier3Chance = 30;
@@ -23,10 +23,10 @@ public class Application {
     public static int maxX2Chance = 5;
 
     private int slotAmount = 0;
-    private ArrayList<Integer> startGridYCords = new ArrayList<>(Arrays.asList(100, 100, 100, 100,550,550,550,550));
-    private ArrayList<Integer> startGridXCords = new ArrayList<>(Arrays.asList(20, 370, 720, 1070, 20, 370, 720, 1070));
+    private final ArrayList<Integer> startGridYCords = new ArrayList<>(Arrays.asList(100, 100, 100, 100,550,550,550,550));
+    private final ArrayList<Integer> startGridXCords = new ArrayList<>(Arrays.asList(20, 390, 740, 1090, 20, 390, 740, 1090));
 
-    private ArrayList<SlotMachine> machines;
+    private final ArrayList<SlotMachine> machines;
 
     public Application() {
         mainFrame = new MainFrame();
@@ -80,7 +80,7 @@ public class Application {
                 machines.get(currentLine).getUpgradeArea().setAddedGrids(Integer.parseInt(values[9]));
                 machines.get(currentLine).setPet(new Pet(Integer.parseInt(values[10])));
                 machines.get(currentLine).getSlotGrid().setRowAmount(Integer.parseInt(values[11]));
-                machines.get(currentLine).instantiate();
+                machines.get(currentLine).updateComponentsWithData();
                 currentLine++;
             }
         } catch (IOException e) {
@@ -113,9 +113,8 @@ public class Application {
 
     public void run() {
         loadData();
-
         if(slotAmount < 6){
-            mainFrame.setSize((slotAmount-(slotAmount/5))*330 + 100,(1+(slotAmount/8))*450+100);
+            mainFrame.setSize((slotAmount-(slotAmount/5))*340 + 100,(1+(slotAmount/8))*450+100);
         }
         //PlayerManager.arrangeLabelsBasedOnSize();
         PlayerManager.rearrangeCoinLabel();
@@ -127,10 +126,10 @@ public class Application {
         if (machines.size() == slotAmount) {
             JLabel addNewMachinePriceLabel = new JLabel("500000000");
             addNewMachinePriceLabel.setForeground(Color.YELLOW);
-            addNewMachinePriceLabel.setBounds(startGridXCords.get(slotNumber) + 290, startGridYCords.get(slotNumber) + 160, 80, 20);
+            addNewMachinePriceLabel.setBounds(startGridXCords.get(slotNumber) + 280, startGridYCords.get(slotNumber) + 180, 80, 20);
             mainFrame.add(addNewMachinePriceLabel);
-            CasinoButton addNewSlotMachineBtt = new CasinoButton("<html>Add<br>New Machine</html>");
-            addNewSlotMachineBtt.setBounds(startGridXCords.get(slotNumber) + 270, startGridYCords.get(slotNumber) + 110, 100, 50);
+            CasinoButton addNewSlotMachineBtt = new CasinoButton("<html>Add<br>New<br>Machine</html>");
+            addNewSlotMachineBtt.setBounds(startGridXCords.get(slotNumber) + 280, startGridYCords.get(slotNumber) + 110, 70, 70);
             addNewSlotMachineBtt.addActionListener(e -> {
                 if (Integer.parseInt(addNewMachinePriceLabel.getText()) <= PlayerManager.getCoins()) {
                     slotAmount++;
@@ -140,7 +139,7 @@ public class Application {
                     generateSlotMachine(slotAmount - 1);
                     //PlayerManager.arrangeLabelsBasedOnSize();
                     PlayerManager.rearrangeCoinLabel();
-                    machines.get(slotAmount - 1).instantiate();
+                    machines.get(slotAmount - 1).updateComponentsWithData();
                     mainFrame.repaint();
                     addNewSlotMachineBtt.setVisible(false);
                     addNewMachinePriceLabel.setVisible(false);
@@ -155,15 +154,4 @@ public class Application {
         }
 
     }
-    //150y beginnt der slot und geht bis 300
-    //beginnt bei x100
-//        mainFrame.add(placeholderLabel3);
-//        mainFrame.add(placeholderLabel4);
-//        mainFrame.add(placeholderLabel5);
-//        mainFrame.add(placeholderLabel6);
-//        mainFrame.add(placeholderLabel7);
-//        mainFrame.add(placeholderLabel8);
-//        mainFrame.add(placeholderLabel9);
-
-
 }

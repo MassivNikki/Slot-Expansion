@@ -7,8 +7,8 @@ import javax.swing.*;
 
 public class UpgradeManager {
 
-    private UpgradeArea upgradeArea;
-    private SlotGrid slotGrid;
+    private final UpgradeArea upgradeArea;
+    private final SlotGrid slotGrid;
 
     public UpgradeManager(SlotGrid slotGrid, UpgradeArea upgradeArea) {
         this.slotGrid = slotGrid;

@@ -22,9 +22,9 @@ public class SlotGrid {
     private int[] currentWin3Symbol;
     private int[] currentWin4Symbol;
     private int[] currentWin5Symbol;
-    private boolean stopForWinLines = false;
-    private JFrame mainFrame;
-    private ArrayList<String> imageNames = new ArrayList<>(
+    private final boolean stopForWinLines = false;
+    private final JFrame mainFrame;
+    private final ArrayList<String> imageNames = new ArrayList<>(
             Arrays.asList("donner", "jack", "queen", "king", "kirsche", "orange", "zitrone", "leaf", "bell", "bar", "stern", "seven", "x2"));
     private int additionalSevenSymbolChance = 0;
     private int additionalTier4SymbolChance = 0;
@@ -32,26 +32,26 @@ public class SlotGrid {
     private int additionalTier2SymbolChance = 0;
     private int tier1SymbolChance = 46;
     private int additionalX2SymbolChance = 0;
-    private int startYCord;
-    private int startXCord;
+    private final int startYCord;
+    private final int startXCord;
     private boolean freeSpinsActivated = false;
     private int freeSpinsLeft = 0;
-    private int slotMultiplier = 1;
+    private final int slotMultiplier = 1;
 
-    private JLabel freeSpinsLabel;
-    private SlotMachine machine;
+    private final JLabel freeSpinsLabel;
+    private final SlotMachine machine;
     private int rand;
-    private int[] tier3SlotGrid = new int[15];
-    private int[] tier2SlotGrid = new int[12];
-    private int[] tier1SlotGrid = new int[9];
+    private final int[] tier3SlotGrid = new int[15];
+    private final int[] tier2SlotGrid = new int[12];
+    private final int[] tier1SlotGrid = new int[9];
     private int[] currentSlotGrid;
     private int rowAmount = 3;
-    private List<JLabel> labels = new ArrayList<>();
-    private ArrayList<ImageIcon> icons = new ArrayList<>();
-    private Border normalBorder = BorderFactory.createLineBorder(Color.black);
-    private Border winBorder = BorderFactory.createLineBorder(Color.YELLOW);
-    private Border slotsLeftBorder = BorderFactory.createLineBorder(Color.GREEN);
-    private Border freeSpinBorder = BorderFactory.createLineBorder(Color.BLUE);
+    private final List<JLabel> labels = new ArrayList<>();
+    private final ArrayList<ImageIcon> icons = new ArrayList<>();
+    private final Border normalBorder = BorderFactory.createLineBorder(Color.black);
+    private final Border winBorder = BorderFactory.createLineBorder(Color.YELLOW);
+    private final Border slotsLeftBorder = BorderFactory.createLineBorder(Color.GREEN);
+    private final Border freeSpinBorder = BorderFactory.createLineBorder(Color.BLUE);
     private List<int[]> winningGrids;
     private List<int[]> currentAdditionalWinningGrid;
 
