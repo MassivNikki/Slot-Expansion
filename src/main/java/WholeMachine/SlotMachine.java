@@ -237,9 +237,9 @@ public class SlotMachine {
             if (!slotGrid.isFreeSpinsActivated()) {
                 spinAmountPerLane = getMaximumAmountPerLane();
                 calculateSpinAmount();
-                if (spinAmount.compareTo(PlayerManager.getCoins()) > 0) {
+                if (spinAmount.compareTo(PlayerManager.getCoins()) > 0 && PlayerManager.getCoins().compareTo(BigInteger.valueOf(0)) > 0) {
                     spinAmountPerLane = PlayerManager.getCoins().divide(BigInteger.valueOf(slotGrid.getWinLanes()));
-                    if (spinAmountPerLane.compareTo(BigInteger.valueOf(getMinimumCoinsPerLane())) <0) {
+                    if (spinAmountPerLane.compareTo(BigInteger.valueOf(getMinimumCoinsPerLane())) < 0) {
                         spinAmountPerLane = BigInteger.valueOf(getMinimumCoinsPerLane());
                     }
                     calculateSpinAmount();
