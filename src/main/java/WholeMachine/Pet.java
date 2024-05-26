@@ -3,6 +3,7 @@ package WholeMachine;
 import CasinoStuff.Application;
 
 import javax.swing.*;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 

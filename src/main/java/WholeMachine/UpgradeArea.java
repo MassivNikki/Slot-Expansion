@@ -3,30 +3,39 @@ package WholeMachine;
 import CasinoStuff.Application;
 import CasinoStuff.CasinoButton;
 import CasinoStuff.PlayerManager;
+import CasinoStuff.PriceLabel;
 
 import javax.swing.*;
 import java.awt.*;
+import java.math.BigInteger;
 
 public class UpgradeArea {
 
     protected CasinoButton additionalSevenSymbolChanceBtt = new CasinoButton();
-    protected JLabel additionalSevenSymbolChancePriceLabel = new JLabel();
+    protected PriceLabel additionalSevenSymbolChancePriceLabel = new PriceLabel();
     protected JLabel additionalSevenSymbolChanceLabel = new JLabel();
     protected CasinoButton additionalTier4SymbolChanceBtt = new CasinoButton();
     protected JLabel additionalTier4SymbolChanceLabel = new JLabel();
-    protected JLabel additionalTier4SymbolChancePriceLabel = new JLabel();
+    protected PriceLabel additionalTier4SymbolChancePriceLabel = new PriceLabel();
     protected CasinoButton additionalTier3SymbolChanceBtt = new CasinoButton();
     protected JLabel additionalTier3SymbolChanceLabel = new JLabel();
-    protected JLabel additionalTier3SymbolChancePriceLabel = new JLabel();
+    protected PriceLabel additionalTier3SymbolChancePriceLabel = new PriceLabel();
     protected CasinoButton additionalTier2SymbolChanceBtt = new CasinoButton();
     protected JLabel additionalTier2SymbolChanceLabel = new JLabel();
-    protected JLabel additionalTier2SymbolChancePriceLabel = new JLabel();
+    protected PriceLabel additionalTier2SymbolChancePriceLabel = new PriceLabel();
     protected JLabel additionalTier1SymbolChanceLabel = new JLabel();
     protected CasinoButton additionalX2SymbolChanceBtt = new CasinoButton();
     protected JLabel additionalX2SymbolChanceLabel = new JLabel();
-    protected JLabel additionalX2SymbolChancePriceLabel = new JLabel();
+    protected PriceLabel additionalX2SymbolChancePriceLabel = new PriceLabel();
+    protected BigInteger sevenSymbolPrice = BigInteger.valueOf(200000);
+    protected BigInteger tier4SymbolPrice = BigInteger.valueOf(100000);
+    protected BigInteger tier3SymbolPrice = BigInteger.valueOf(50000);
+    protected BigInteger tier2SymbolPrice = BigInteger.valueOf(10000);
+    protected BigInteger x2SymbolPrice = BigInteger.valueOf(200000);
+    protected BigInteger rowPrice = BigInteger.valueOf(1000000000);
+    protected BigInteger newGridPrice = BigInteger.valueOf(200000);
     protected int addedGrids = 0;
-    protected JLabel additionalGridsPriceLabel = new JLabel();
+    protected PriceLabel additionalGridsPriceLabel = new PriceLabel();
     protected JLabel additionalGridsLabel = new JLabel();
     protected CasinoButton additionalWinningGridsBtt = new CasinoButton();
     private final JFrame mainFrame;
@@ -35,12 +44,14 @@ public class UpgradeArea {
     private final int startYCord;
     private final int startXCord;
     private int totalUpgradeAmount = 0;
+    private  SlotMachine machine;
 
-    public UpgradeArea(JFrame mainFrame, SlotGrid slotGrid, int startXCord, int startYCord) {
+    public UpgradeArea(JFrame mainFrame, SlotGrid slotGrid, int startXCord, int startYCord, SlotMachine machine) {
         this.mainFrame = mainFrame;
         this.slotGrid = slotGrid;
         this.startXCord = startXCord;
         this.startYCord = startYCord;
+        this.machine = machine;
         upgradeManager = new UpgradeManager(this.slotGrid, this);
         generateStaticLabels();
     }
@@ -68,38 +79,39 @@ public class UpgradeArea {
         }
         addNewUpgrade("7 Symbol chance:", additionalSevenSymbolChancePriceLabel
                 , additionalSevenSymbolChanceBtt, additionalSevenSymbolChanceLabel
-                , slotGrid.getAdditionalSevenSymbolChance(), 3, Application.maxSevenChance, 7, 20000, "%");
+                , slotGrid.getAdditionalSevenSymbolChance(), 3, Application.maxSevenChance, 7, sevenSymbolPrice, "%");
         addNewUpgrade("Tier 4 Symbol chance:", additionalTier4SymbolChancePriceLabel
                 , additionalTier4SymbolChanceBtt, additionalTier4SymbolChanceLabel
-                , slotGrid.getAdditionalTier4SymbolChance(), 10, Application.maxTier4Chance, 4, 10000, "%");
+                , slotGrid.getAdditionalTier4SymbolChance(), 10, Application.maxTier4Chance, 4, tier4SymbolPrice, "%");
         addNewUpgrade("Tier 3 Symbol chance:", additionalTier3SymbolChancePriceLabel
                 , additionalTier3SymbolChanceBtt, additionalTier3SymbolChanceLabel
-                , slotGrid.getAdditionalTier3SymbolChance(), 15, Application.maxTier3Chance, 3, 5000, "%");
+                , slotGrid.getAdditionalTier3SymbolChance(), 15, Application.maxTier3Chance, 3, tier3SymbolPrice, "%");
         addNewUpgrade("Tier 2 Symbol chance:", additionalTier2SymbolChancePriceLabel
                 , additionalTier2SymbolChanceBtt, additionalTier2SymbolChanceLabel
-                , slotGrid.getAdditionalTier2SymbolChance(), 20, Application.maxTier2Chance, 2, 1000, "%");
+                , slotGrid.getAdditionalTier2SymbolChance(), 20, Application.maxTier2Chance, 2, tier2SymbolPrice, "%");
         addNewUpgrade("Tier 1 Symbol chance:", null
                 , null, additionalTier1SymbolChanceLabel
-                , slotGrid.getAdditionalTier2SymbolChance(), 46, 0, -1, 0, "%");
+                ,0, slotGrid.getTier1SymbolChance(), 0, -1, BigInteger.valueOf(0), "%");
         addNewUpgrade("X2 Symbol chance:", additionalX2SymbolChancePriceLabel
                 , additionalX2SymbolChanceBtt, additionalX2SymbolChanceLabel
-                , slotGrid.getAdditionalX2SymbolChance(), 2, Application.maxX2Chance, 1, 20000, "%");
+                , slotGrid.getAdditionalX2SymbolChance(), 2, Application.maxX2Chance, 1, x2SymbolPrice, "%");
         addNewUpgrade("New winning grid:", additionalGridsPriceLabel
                 , additionalWinningGridsBtt, additionalGridsLabel
-                , slotGrid.getWinningGrids().size(), 0, slotGrid.getWinningGrids().size() - addedGrids + slotGrid.getCurrentAdditionalWinningGrid().size(), 0, 2000, "");
+                , addedGrids, slotGrid.getWinningGrids().size() - addedGrids, slotGrid.getWinningGrids().size() - addedGrids + slotGrid.getCurrentAdditionalWinningGrid().size(), 0, newGridPrice, "");
 
     }
 
-    private void addNewUpgrade(String upgradeInfo, JLabel priceLabel, JButton increaseBtt, JLabel chanceLabel, int symbolAdditionalChance, int originalChance, int maxChance, int winSymbol, int price, String kind) {
-
+    private void addNewUpgrade(String upgradeInfo, PriceLabel priceLabel, JButton increaseBtt, JLabel chanceLabel, int symbolAdditionalChance, int originalChance, int maxChance, int winSymbol, BigInteger price, String kind) {
         JLabel upgradeInfoLabel = new JLabel(upgradeInfo);
         upgradeInfoLabel.setForeground(Color.white);
         upgradeInfoLabel.setBounds(startXCord, startYCord + 240 + totalUpgradeAmount * 20, 200, 20);
         mainFrame.add(upgradeInfoLabel);
         if (priceLabel != null) {
-            priceLabel.setText(String.valueOf(price * (symbolAdditionalChance > 0 ? (int)Math.pow(2,symbolAdditionalChance) : 1)));
-            priceLabel.setForeground(Color.YELLOW);
             priceLabel.setBounds(startXCord + 220, startYCord + 240 + totalUpgradeAmount * 20, 50, 20);
+            priceLabel.setPrice(price,machine.slotTier);
+            for (int i = 0; i < symbolAdditionalChance; i++) {
+                priceLabel.increasePrice();
+            }
             mainFrame.add(priceLabel);
         }
         chanceLabel.setText(symbolAdditionalChance + originalChance + "/" + maxChance + kind);
@@ -109,7 +121,7 @@ public class UpgradeArea {
         if (increaseBtt != null) {
             increaseBtt.setText("+1");
             increaseBtt.setMargin(new Insets(0, 0, 0, 0));
-            increaseBtt.setBounds(startXCord + 180, startYCord + 240 + totalUpgradeAmount * 20, 30, 20);
+            increaseBtt.setBounds(startXCord + 185, startYCord + 240 + totalUpgradeAmount * 20, 30, 20);
             if (symbolAdditionalChance == maxChance - originalChance) {
                 assert priceLabel != null;
                 priceLabel.setVisible(false);
@@ -151,7 +163,6 @@ public class UpgradeArea {
             case 0:
                 btt.addActionListener(e -> {
                    upgradeManager.addNewWinningGrid(addedGrids);
-
                 });
                 break;
         }
@@ -159,9 +170,9 @@ public class UpgradeArea {
 
     private void generateAddRowButtons() {
 
-        JLabel priceLabel = new JLabel("1000000");
+        PriceLabel priceLabel = new PriceLabel(rowPrice,machine.slotTier);
         priceLabel.setForeground(Color.YELLOW);
-        priceLabel.setBounds(startXCord + 50 * slotGrid.getRowAmount()+50, startYCord + 70, 60, 20);
+        priceLabel.setBounds(startXCord + 50 * slotGrid.getRowAmount()+50, startYCord + 70, 65, 20);
         mainFrame.add(priceLabel);
 
         CasinoButton newSlotRowBtt = new CasinoButton("+1 Row");
@@ -169,13 +180,15 @@ public class UpgradeArea {
         newSlotRowBtt.setBounds(startXCord + 50 * slotGrid.getRowAmount(), startYCord + 60, 50, 150);
         newSlotRowBtt.addActionListener(e -> {
             if (slotGrid.getRowAmount() < 5) {
-                if(PlayerManager.getCoins() >= Integer.parseInt(priceLabel.getText())){
+                if(PlayerManager.getCoins().compareTo(priceLabel.getPrice()) >= 0){
                     upgradeManager.upgradeGrid();
+                    PlayerManager.decreaseCoins(priceLabel.getPrice());
                     if (slotGrid.getRowAmount() == 5) {
-                        newSlotRowBtt.setVisible(false);
-                        priceLabel.setVisible(false);
+                        mainFrame.remove(newSlotRowBtt);
+                        mainFrame.remove(priceLabel);
+                        mainFrame.repaint();
                     } else {
-                        priceLabel.setText(String.valueOf(Integer.parseInt(priceLabel.getText())+10000));
+                        priceLabel.increasePrice();
                         newSlotRowBtt.setBounds(startXCord + 50 * slotGrid.getRowAmount(), startYCord + 60, 50, 150);
                         priceLabel.setBounds(startXCord + 50 * slotGrid.getRowAmount()+50, startYCord + 70, 50, 20);
                     }

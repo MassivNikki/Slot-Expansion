@@ -6,6 +6,7 @@ import CasinoStuff.PlayerManager;
 import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -425,8 +426,8 @@ public class SlotGrid {
 
     }
 
-    public long spinSlotMachine(long spinAmount) {
-        machine.setSlotXp(machine.getSlotXp() + spinAmount);
+    public BigInteger spinSlotMachine(BigInteger spinAmount) {
+        machine.setSlotXp(machine.getSlotXp().add(spinAmount));
         //jede zelle bekommt einen wert,wodurch das bild dazu reinkommt
         for (int i = 0; i < currentSlotGrid.length; i++) {
             rand = calculateSlotSymbol(i);
@@ -435,8 +436,8 @@ public class SlotGrid {
         }
         //falls keine free spins sind werden coins abgezogen vom geld und der player keirgt es als xp
         if (!freeSpinsActivated) {
-            if (spinAmount / getWinLanes() > machine.getMinimumCoinsPerLane()) {
-                PlayerManager.setCoins(PlayerManager.getCoins() - spinAmount);
+            if (spinAmount.divide(BigInteger.valueOf(getWinLanes())).compareTo(BigInteger.valueOf(machine.getMinimumCoinsPerLane())) > 0) {
+                PlayerManager.decreaseCoins(spinAmount);
             }
         } else {
             freeSpinsLeft--;
@@ -447,7 +448,7 @@ public class SlotGrid {
             }
         }
         labels.forEach(label -> label.paintImmediately(label.getVisibleRect()));
-        long win = calculateWin(spinAmount);
+        BigInteger win = calculateWin(spinAmount);
         if (checkForFreeSpins()) {
             //System.out.println("Free spins!\n You won " + freeSpinsLeft + " free spins.");
             freeSpinsActivated = true;
@@ -459,12 +460,12 @@ public class SlotGrid {
 
     //berechnet was gewonnen wird
 
-    private long calculateWin(long spinAmount) {
+    private BigInteger calculateWin(BigInteger spinAmount) {
         int winSymbol = -1;
         boolean symbolLockedIn = false;
         int correctSymbols = 0;
-        long tempCoinWin;
-        long wholeSpinWin = 0;
+        BigInteger tempCoinWin;
+        BigInteger wholeSpinWin = BigInteger.valueOf(0);
         int x2Amount = 0;
         List<Integer> firstColumn = new ArrayList<>(Arrays.asList(0, rowAmount, rowAmount * 2));
         List<Integer> currentColumn = new ArrayList<>();
@@ -472,7 +473,7 @@ public class SlotGrid {
         for (int[] winningGrid : winningGrids) {
             //es wird bei der ersten Spalte begonnen
             currentColumn.addAll(firstColumn);
-            tempCoinWin = 0;
+            tempCoinWin = BigInteger.valueOf(0);
             //die walzen werden spaltenweise durchgegangen
             for (int j = 0; j < rowAmount; j++) {
                 for (Integer i : currentColumn) {
@@ -529,24 +530,24 @@ public class SlotGrid {
                 //wird der gewinn amount bestimmt
                 switch (correctSymbols) {
                     case 3:
-                        tempCoinWin = currentWin3Symbol[winSymbol] * spinAmount;
+                        tempCoinWin = spinAmount.multiply(BigInteger.valueOf(currentWin3Symbol[winSymbol]));
                         break;
                     case 4:
-                        tempCoinWin = currentWin4Symbol[winSymbol] * spinAmount;
+                        tempCoinWin = spinAmount.multiply(BigInteger.valueOf(currentWin4Symbol[winSymbol]));
                         break;
                     case 5:
-                        tempCoinWin = currentWin5Symbol[winSymbol] * spinAmount;
+                        tempCoinWin = spinAmount.multiply(BigInteger.valueOf(currentWin5Symbol[winSymbol]));
                         break;
                 }
                 //falls x2 bonis in der reihe, waren werden diese angewandt
                 if (x2Amount != 0) {
-                    tempCoinWin *= x2Amount * 2L;
+                    tempCoinWin = tempCoinWin.multiply(BigInteger.valueOf(x2Amount * 2L));
                 }
-                tempCoinWin *= machine.getPet().getMulti();
-                PlayerManager.setCoins(PlayerManager.getCoins() + tempCoinWin);
+                tempCoinWin = tempCoinWin.multiply(BigInteger.valueOf(machine.getPet().getMulti()));
+                PlayerManager.increaseCoins(tempCoinWin);
                 //damit der gewinn am ende aller muster angezeigt werden kann
-                wholeSpinWin += tempCoinWin;
-                System.out.println("-----Winning-----\nCorrect Symbols: " + correctSymbols + "(" + winSymbol + ")\nWin: " + tempCoinWin + "\nMultiplier: " + tempCoinWin / spinAmount);
+                wholeSpinWin = wholeSpinWin.add(tempCoinWin);
+                System.out.println("-----Winning-----\nCorrect Symbols: " + correctSymbols + "(" + winSymbol + ")\nWin: " + tempCoinWin + "\nMultiplier: " + tempCoinWin.divide(spinAmount));
                 showGoodGrids(winningGrid);
                 labels.forEach(label -> label.paintImmediately(label.getVisibleRect()));
                 //jede gewinnende reihe wird kurz angezeigt und verschwindet dann wieder

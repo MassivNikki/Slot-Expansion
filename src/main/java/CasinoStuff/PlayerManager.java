@@ -1,50 +1,47 @@
 package CasinoStuff;
 
-import WholeMachine.Pet;
-
 import javax.swing.*;
-import javax.swing.border.Border;
 import java.awt.*;
-import java.util.Random;
+import java.math.BigInteger;
 
 public class PlayerManager {
-    private static long coins;
-    private static JLabel coinAmountLabel;
+    private static BigInteger coins;
+    private static PriceLabel coinAmountLabel;
     private static JFrame mainFrame;
 
 
     public static void setMainFrame(JFrame mainFrame) {
         PlayerManager.mainFrame = mainFrame;
         generateCoinStuff();
-        //generateLabels();
     }
 
     private static void generateCoinStuff() {
-        coinAmountLabel = new JLabel();
+        coinAmountLabel = new PriceLabel();
         coinAmountLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        setSizeToMainFrameSize();
         coinAmountLabel.setForeground(Color.ORANGE);
         mainFrame.add(coinAmountLabel);
     }
-
-    public static void rearrangeCoinLabel() {
-        FontMetrics fontMetrics = coinAmountLabel.getFontMetrics(coinAmountLabel.getFont());
-        int textWidth = fontMetrics.stringWidth(coinAmountLabel.getText());
-        coinAmountLabel.setPreferredSize(new Dimension(textWidth, coinAmountLabel.getHeight()));
-        coinAmountLabel.setBounds(mainFrame.getBounds().width / 2 - textWidth / 2, 20, textWidth, 20);
+    public static void setSizeToMainFrameSize(){
+        coinAmountLabel.setBounds(0,20,mainFrame.getSize().width-16,20);
     }
 
-    public static long getCoins() {
+    public static BigInteger getCoins() {
         return coins;
     }
 
     //einheitliche coin objekt, welches das label bei jeder änderung mitändert
-    public static void setCoins(long coins) {
-        int coinAmount = String.valueOf(PlayerManager.coins).length();
+    public static void setCoins(BigInteger coins) {
         PlayerManager.coins = coins;
-        coinAmountLabel.setText(coins + " C");
-        if (coinAmount < String.valueOf(PlayerManager.coins).length()) {
-            rearrangeCoinLabel();
-        }
+        coinAmountLabel.setCoins(coins);
+    }
+    public static void decreaseCoins(BigInteger amount) {
+        coins = coins.subtract(amount);
+        coinAmountLabel.setCoins(coins);
     }
 
+    public static void increaseCoins(BigInteger amount) {
+        coins = coins.add(amount);
+        coinAmountLabel.setCoins(coins);
+    }
 }
