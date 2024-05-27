@@ -1,6 +1,7 @@
 package WholeMachine;
 
 import CasinoStuff.Application;
+import CasinoStuff.CasinoUpgradeButton;
 import CasinoStuff.PlayerManager;
 import CasinoStuff.PriceLabel;
 
@@ -22,20 +23,20 @@ public class UpgradeManager {
                 if (slotGrid.getAdditionalTier3SymbolChance() == -15) {
                     if (slotGrid.getAdditionalTier4SymbolChance() > -10) {
                         slotGrid.setAdditionalTier4SymbolChance(slotGrid.getAdditionalTier4SymbolChance() - 1);
-                        upgradeArea.additionalTier4SymbolChanceLabel.setText(slotGrid.getAdditionalTier4SymbolChance() + 10 + "%");
+                        upgradeArea.upgradeButtons.get(1).setChanceLabelText(slotGrid.getAdditionalTier4SymbolChance() + upgradeArea.buttonChances[1] + "%");
                     }
                 } else {
                     slotGrid.setAdditionalTier3SymbolChance(slotGrid.getAdditionalTier3SymbolChance() - 1);
-                    upgradeArea.additionalTier3SymbolChanceLabel.setText(slotGrid.getAdditionalTier3SymbolChance() + 15 + "%");
+                    upgradeArea.upgradeButtons.get(2).setChanceLabelText(slotGrid.getAdditionalTier3SymbolChance() + upgradeArea.buttonChances[2] + "%");
                 }
             } else {
                 slotGrid.setAdditionalTier2SymbolChance(slotGrid.getAdditionalTier2SymbolChance() - 1);
-                upgradeArea.additionalTier2SymbolChanceLabel.setText(slotGrid.getAdditionalTier2SymbolChance() + 20 + "%");
+                upgradeArea.upgradeButtons.get(3).setChanceLabelText(slotGrid.getAdditionalTier2SymbolChance() + upgradeArea.buttonChances[3] + "%");
             }
 
         } else {
             slotGrid.setTier1SymbolChance(slotGrid.getTier1SymbolChance() - 1);
-            upgradeArea.additionalTier1SymbolChanceLabel.setText(slotGrid.getTier1SymbolChance() + "%");
+            upgradeArea.upgradeButtons.get(4).setChanceLabelText(slotGrid.getTier1SymbolChance() + "%");
         }
     }
 
@@ -45,52 +46,36 @@ public class UpgradeManager {
     }
 
     private void resetAllUpgrades() {
-        upgradeArea.additionalTier1SymbolChanceLabel.setText(46 + "%");
-        upgradeArea.additionalTier2SymbolChanceLabel.setText(20 + "%");
-        upgradeArea.additionalTier3SymbolChanceLabel.setText(15 + "%");
-        upgradeArea.additionalTier4SymbolChanceLabel.setText(10 + "%");
-        upgradeArea.additionalSevenSymbolChanceLabel.setText(3 + "%");
-        upgradeArea.additionalX2SymbolChanceLabel.setText(2 + "%");
-        upgradeArea.additionalGridsLabel.setText(slotGrid.getWinningGrids().size() + "/" + (slotGrid.getWinningGrids().size() + slotGrid.getCurrentAdditionalWinningGrid().size()));
+        for (int i = 0; i < upgradeArea.upgradeButtons.size()-1; i++) {
+            upgradeArea.upgradeButtons.get(i).setChanceLabelText(upgradeArea.buttonChances[i]+"%");
+        }
+        upgradeArea.upgradeButtons.getLast().setChanceLabelText(slotGrid.getWinningGrids().size() + "/" + (slotGrid.getWinningGrids().size() + slotGrid.getCurrentAdditionalWinningGrid().size()));
         upgradeArea.addedGrids = 0;
         enableAllLabelsAndButtons();
     }
 
     private void enableAllLabelsAndButtons() {
-        upgradeArea.additionalSevenSymbolChancePriceLabel.setVisible(true);
-        upgradeArea.additionalX2SymbolChancePriceLabel.setVisible(true);
-        upgradeArea.additionalTier4SymbolChancePriceLabel.setVisible(true);
-        upgradeArea.additionalTier3SymbolChancePriceLabel.setVisible(true);
-        upgradeArea.additionalTier2SymbolChancePriceLabel.setVisible(true);
-        upgradeArea.additionalGridsPriceLabel.setVisible(true);
-
-        upgradeArea.additionalSevenSymbolChanceBtt.setVisible(true);
-        upgradeArea.additionalX2SymbolChanceBtt.setVisible(true);
-        upgradeArea.additionalTier3SymbolChanceBtt.setVisible(true);
-        upgradeArea.additionalTier2SymbolChanceBtt.setVisible(true);
-        upgradeArea.additionalTier4SymbolChanceBtt.setVisible(true);
-        upgradeArea.additionalWinningGridsBtt.setVisible(true);
+        upgradeArea.upgradeButtons.forEach(CasinoUpgradeButton::enableUpgradable);
     }
 
     public void addNewWinningGrid(int grid) {
-        if (PlayerManager.getCoins().compareTo(upgradeArea.additionalGridsPriceLabel.getPrice()) > 0) {
-            String labelText = upgradeArea.additionalGridsLabel.getText();
+        if (PlayerManager.getCoins().compareTo(upgradeArea.upgradeButtons.get(6).getPrice()) > 0) {
+            String labelText = upgradeArea.upgradeButtons.get(6).getChanceLabelText();
             int delimiterIndex = labelText.indexOf('/');
-            PlayerManager.decreaseCoins(upgradeArea.additionalGridsPriceLabel.getPrice());
-            upgradeArea.additionalGridsPriceLabel.increasePrice();
+            PlayerManager.decreaseCoins(upgradeArea.upgradeButtons.get(6).getPrice());
+            upgradeArea.upgradeButtons.get(6).increasePrice();
             upgradeArea.addedGrids++;
             slotGrid.addNewWinningGrid(grid);
-            upgradeArea.additionalGridsLabel.setText(slotGrid.getWinningGrids().size() + labelText.substring(delimiterIndex));
+            upgradeArea.upgradeButtons.get(6).setChanceLabelText(slotGrid.getWinningGrids().size() + labelText.substring(delimiterIndex));
             if (upgradeArea.addedGrids == slotGrid.getCurrentAdditionalWinningGrid().size()) {
-                upgradeArea.additionalWinningGridsBtt.setVisible(false);
-                upgradeArea.additionalGridsPriceLabel.setVisible(false);
+                upgradeArea.upgradeButtons.get(6).disableUpgradable();
             }
         }
     }
 
-    private void increaseChance(PriceLabel priceLabel, int chance, JLabel chanceLabel, JButton chanceButton, int symbol, int originalChance, int maxChance) {
+    private void increaseChance(int chance,CasinoUpgradeButton chanceButton, int symbol, int originalChance, int maxChance) {
         //System.out.println(symbol + " chance got upgraded!");
-        if (priceLabel.getPrice().compareTo(PlayerManager.getCoins()) <= 0) {
+        if (chanceButton.getPrice().compareTo(PlayerManager.getCoins()) <= 0) {
             chance++;
             switch (symbol) {
                 case 7:
@@ -110,41 +95,43 @@ public class UpgradeManager {
                     break;
             }
             updateTierLabel();
-            chanceLabel.setText(chance + originalChance + "/" + maxChance + "%");
-            PlayerManager.decreaseCoins(priceLabel.getPrice());
+            chanceButton.setChanceLabelText(chance + originalChance + "/" + maxChance + "%");
+            PlayerManager.decreaseCoins(chanceButton.getPrice());
             if (chance >= maxChance - originalChance) {
-                chanceButton.setVisible(false);
-                priceLabel.setVisible(false);
+                chanceButton.disableUpgradable();
+//                chanceButton.setVisible(false);
+//                priceLabel.setVisible(false);
             }
-            priceLabel.increasePrice();
+            chanceButton.increasePrice();
+            //priceLabel.increasePrice();
         }
     }
 
     public void increaseAdditionalSevenSymbolChance() {
-         increaseChance(upgradeArea.additionalSevenSymbolChancePriceLabel, slotGrid.getAdditionalSevenSymbolChance(),
-                upgradeArea.additionalSevenSymbolChanceLabel, upgradeArea.additionalSevenSymbolChanceBtt, 7, 3, Application.maxSevenChance);
+         increaseChance( slotGrid.getAdditionalSevenSymbolChance(),
+                upgradeArea.upgradeButtons.getFirst(), 7, 3, Application.maxSevenChance);
     }
 
     public void increaseAdditionalTier4SymbolChance() {
-         increaseChance(upgradeArea.additionalTier4SymbolChancePriceLabel, slotGrid.getAdditionalTier4SymbolChance(),
-                upgradeArea.additionalTier4SymbolChanceLabel, upgradeArea.additionalTier4SymbolChanceBtt, 4, 10, Application.maxTier4Chance);
+         increaseChance(slotGrid.getAdditionalTier4SymbolChance(),
+                 upgradeArea.upgradeButtons.get(1), 4, 10, Application.maxTier4Chance);
 
     }
 
     public void increaseAdditionalTier3SymbolChance() {
-         increaseChance(upgradeArea.additionalTier3SymbolChancePriceLabel, slotGrid.getAdditionalTier3SymbolChance(),
-                upgradeArea.additionalTier3SymbolChanceLabel, upgradeArea.additionalTier3SymbolChanceBtt, 3, 15, Application.maxTier3Chance);
+         increaseChance( slotGrid.getAdditionalTier3SymbolChance(),
+                 upgradeArea.upgradeButtons.get(2), 3, 15, Application.maxTier3Chance);
     }
 
     public void increaseAdditionalTier2SymbolChance() {
-         increaseChance(upgradeArea.additionalTier2SymbolChancePriceLabel, slotGrid.getAdditionalTier2SymbolChance(),
-                upgradeArea.additionalTier2SymbolChanceLabel, upgradeArea.additionalTier2SymbolChanceBtt, 2, 20, Application.maxTier2Chance);
+         increaseChance( slotGrid.getAdditionalTier2SymbolChance(),
+                 upgradeArea.upgradeButtons.get(3), 2, 20, Application.maxTier2Chance);
 
     }
 
     public void increaseAdditionalX2SymbolChance() {
-         increaseChance(upgradeArea.additionalX2SymbolChancePriceLabel, slotGrid.getAdditionalX2SymbolChance(),
-                upgradeArea.additionalX2SymbolChanceLabel, upgradeArea.additionalX2SymbolChanceBtt, 1, 2, Application.maxX2Chance);
+         increaseChance( slotGrid.getAdditionalX2SymbolChance(),
+                 upgradeArea.upgradeButtons.get(5), 1, 2, Application.maxX2Chance);
     }
 
 }

@@ -18,7 +18,7 @@ import java.util.Objects;
 
 public class Application {
 
-    private final boolean resetData = false;
+    private final boolean resetData = true;
     private final String saveDataPath = "SaveData";
     private final JFrame mainFrame;
     public static int maxSevenChance = 10;

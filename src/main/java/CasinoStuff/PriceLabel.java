@@ -7,7 +7,7 @@ import java.text.DecimalFormat;
 
 public class PriceLabel extends JLabel {
     DecimalFormat scientificFormat = new DecimalFormat("0.###E0");
-    private BigInteger price;
+    private BigInteger price = BigInteger.valueOf(0);
     private int tierOfSlot = 1;
     private boolean initialPriceSet = false;
     public PriceLabel(BigInteger price, int slotTier) {
@@ -23,10 +23,10 @@ public class PriceLabel extends JLabel {
         setHorizontalAlignment(SwingConstants.CENTER);
         setForeground(Color.yellow);
     }
-    public void updateFormat(BigInteger xp){
-        if(xp.compareTo(BigInteger.valueOf(10000)) >= 0){
-            super.setText(scientificFormat.format(xp));
-        }else super.setText(String.valueOf(xp));
+    public void updateFormat(BigInteger amount){
+        if(amount.compareTo(BigInteger.valueOf(10000)) >= 0){
+            super.setText(scientificFormat.format(amount));
+        }else super.setText(String.valueOf(amount));
         setHorizontalAlignment(SwingConstants.LEFT);
     }
 
@@ -41,7 +41,6 @@ public class PriceLabel extends JLabel {
         if(this.price.compareTo(BigInteger.valueOf(10000)) >= 0){
             super.setText(scientificFormat.format(this.price));
         }else super.setText(String.valueOf(this.price));
-
         resizeLabel();
     }
     public void setCoins(BigInteger coins){
