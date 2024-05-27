@@ -548,7 +548,7 @@ public class SlotGrid {
                 //damit der gewinn am ende aller muster angezeigt werden kann
                 wholeSpinWin = wholeSpinWin.add(tempCoinWin);
                 System.out.println("-----Winning-----\nCorrect Symbols: " + correctSymbols + "(" + winSymbol + ")\nWin: " + tempCoinWin + "\nMultiplier: " + tempCoinWin.divide(spinAmount));
-                showGoodGrids(winningGrid);
+                //showGoodGrids(winningGrid);
                 labels.forEach(label -> label.paintImmediately(label.getVisibleRect()));
                 //jede gewinnende reihe wird kurz angezeigt und verschwindet dann wieder
                 if (stopForWinLines) {
