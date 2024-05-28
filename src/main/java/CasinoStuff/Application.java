@@ -2,8 +2,6 @@ package CasinoStuff;
 
 import WholeMachine.Pet;
 import WholeMachine.SlotMachine;
-import WholeMachine.UpgradeArea;
-import WholeMachine.UpgradeManager;
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,8 +11,6 @@ import java.io.*;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Formatter;
-import java.util.Objects;
 
 public class Application {
 
@@ -29,7 +25,7 @@ public class Application {
     private BigInteger newMachinePrice = BigInteger.valueOf(50000000000L);
     private int slotAmount = 0;
     private final ArrayList<Integer> startGridYCords = new ArrayList<>(Arrays.asList(100, 100, 100, 100, 550, 550, 550, 550));
-    private final ArrayList<Integer> startGridXCords = new ArrayList<>(Arrays.asList(20, 390, 760, 1130, 20, 390, 760, 1130));
+    private final ArrayList<Integer> startGridXCords = new ArrayList<>(Arrays.asList(20, 410, 800, 1190, 20, 410, 800, 1190));
 
     private final ArrayList<SlotMachine> machines;
 
@@ -88,9 +84,9 @@ public class Application {
                 currentMachine.getUpgradeArea().setAddedGrids(Integer.parseInt(values[9]));
                 currentMachine.setPet(new Pet(Integer.parseInt(values[10])));
                 currentMachine.getSlotGrid().setRowAmount(Integer.parseInt(values[11]));
-                currentMachine.setAutoCooldown(Integer.parseInt(values[12]));
-                currentMachine.setManualCooldown(Integer.parseInt(values[13]));
-                currentMachine.setAutoSpinUnlocked(Boolean.parseBoolean(values[14]));
+                currentMachine.autoCooldown = Integer.parseInt(values[12]);
+                currentMachine.manualCooldown = Integer.parseInt(values[13]);
+                currentMachine.autoSpinUnlocked = Boolean.parseBoolean(values[14]);
                 currentMachine.updateComponentsWithData();
                 currentLine++;
             }
@@ -102,12 +98,12 @@ public class Application {
     private void saveData() {
         try (PrintWriter writer = new PrintWriter(new FileWriter(saveDataPath))) {
             if (resetData) {
-                writer.print("12345678910111213,1,0,0,0,0,0,46,0,0,-1,3,1000,500,false");
+                writer.print("12345678910111213,1,0,0,0,0,0,53,0,0,-1,3,1000,500,false");
             } else {
                 for (SlotMachine machine : machines) {
                     writer.println(PlayerManager.getCoins()
-                            + "," + machine.getSlotLevel()
-                            + "," + machine.getSlotXp()
+                            + "," + machine.slotLevel
+                            + "," + machine.slotXp
                             + "," + machine.getSlotGrid().getAdditionalSevenSymbolChance()
                             + "," + machine.getSlotGrid().getAdditionalTier4SymbolChance()
                             + "," + machine.getSlotGrid().getAdditionalTier3SymbolChance()
@@ -115,11 +111,11 @@ public class Application {
                             + "," + machine.getSlotGrid().getTier1SymbolChance()
                             + "," + machine.getSlotGrid().getAdditionalX2SymbolChance()
                             + "," + machine.getUpgradeArea().getAddedGrids()
-                            + "," + machine.getPetTier()
+                            + "," + machine.pet.petTier
                             + "," + machine.getSlotGrid().getRowAmount()
-                            + "," + machine.getAutoCooldown()
-                            + "," + machine.getManualCooldown()
-                            + "," + machine.isAutoSpinUnlocked());
+                            + "," + machine.autoCooldown
+                            + "," + machine.manualCooldown
+                            + "," + machine.autoSpinUnlocked);
                 }
             }
 
@@ -137,39 +133,31 @@ public class Application {
     }
 
     private void resizeMainFrame() {
-        if (slotAmount < 6) {
-            mainFrame.setSize(20 + slotAmount * 370 + 20, (1 + (slotAmount / 5)) * 450 + 100);
+        if (slotAmount < 5) {
+            mainFrame.setSize(startGridXCords.get(slotAmount-1)+(20 + 366)*(1-slotAmount/5), (1 + (slotAmount / 5)) * 450 + 100);
+            PlayerManager.setSizeToMainFrameSize();
+        }else if (slotAmount == 5) {
+            mainFrame.setSize(mainFrame.getWidth(), (1 + (slotAmount / 5)) * 450 + 100);
             PlayerManager.setSizeToMainFrameSize();
         }
     }
 
     private void generateSlotMachine(int slotNumber) {
         machines.add(new SlotMachine(startGridXCords.get(slotNumber), startGridYCords.get(slotNumber), mainFrame, machines.size()+1));
-        if (machines.size() == slotAmount) {
-            PriceLabel addNewMachinePriceLabel = new PriceLabel(newMachinePrice,machines.getLast().getSlotTier());
-            addNewMachinePriceLabel.setBounds(startGridXCords.get(slotNumber) + 280, startGridYCords.get(slotNumber) + 180, 80, 20);
-            mainFrame.add(addNewMachinePriceLabel);
-            CasinoButton addNewSlotMachineBtt = new CasinoButton("<html>Add<br>New<br>Machine</html>");
-            addNewSlotMachineBtt.setBounds(startGridXCords.get(slotNumber) + 280, startGridYCords.get(slotNumber) + 110, 70, 70);
-            addNewSlotMachineBtt.addActionListener(e -> {
-                if (addNewMachinePriceLabel.getPrice().compareTo(PlayerManager.getCoins()) <= 0) {
+        if (machines.size() == slotAmount && slotAmount < 8) {
+            CasinoUpgradeButton newMachineButton =
+                    new CasinoUpgradeButton(newMachinePrice,machines.getLast().getSlotTier(),"<html>Add<br>New<br>Machine</html>",
+                            startGridXCords.get(slotNumber) + 280,startGridYCords.get(slotNumber) + 110,mainFrame,70,70,PriceLabelPosition.UNDER);
+            newMachineButton.addCustomActionListener(e -> {
                     slotAmount++;
                     resizeMainFrame();
-                    PlayerManager.decreaseCoins(addNewMachinePriceLabel.getPrice());
-                    newMachinePrice = addNewMachinePriceLabel.increasePrice();
+                    newMachinePrice = newMachineButton.getPrice();
                     generateSlotMachine(slotAmount - 1);
                     machines.get(slotAmount - 1).updateComponentsWithData();
-                    mainFrame.remove(addNewSlotMachineBtt);
-                    mainFrame.remove(addNewMachinePriceLabel);
+                    newMachineButton.removeFromMainframe(mainFrame);
                     mainFrame.repaint();
-                }
-
             });
-            mainFrame.add(addNewSlotMachineBtt);
-            if (slotAmount == 8) {
-                addNewSlotMachineBtt.setVisible(false);
-                addNewMachinePriceLabel.setVisible(false);
-            }
+            mainFrame.add(newMachineButton);
         }
 
     }

@@ -14,12 +14,15 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public class SlotGrid {
+    private final int[] tier1Win3Symbol = {0, 2, 2, 2, 3, 3, 3, 4, 4, 6, 6, 10};
+    private final int[] tier2Win3Symbol = {0, 1, 1, 1, 2, 2, 2, 3, 3, 5, 5, 7};
     private final int[] tier3Win3Symbol = {0, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5};
-    private final int[] tier3Win4Symbol = {0, 2, 2, 2, 3, 3, 3, 5, 5, 10, 10, 50};
-    private final int[] tier3Win5Symbol = {0, 5, 5, 5, 10, 10, 10, 30, 30, 50, 50, 200};
-    private final int[] tier2Win3Symbol = {0, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5};
-    private final int[] tier2Win4Symbol = {0, 2, 2, 2, 3, 3, 3, 5, 5, 10, 10, 50};
-    private final int[] tier1Win3Symbol = {0, 3, 3, 3, 5, 5, 5, 10, 10, 20, 20, 50};
+
+    private final int[] tier2Win4Symbol = {0, 3, 3, 3, 4, 4, 4, 6, 6, 10, 10, 15};
+    private final int[] tier3Win4Symbol = {0, 2, 2, 2, 3, 3, 3, 5, 5, 7, 7, 10};
+
+    private final int[] tier3Win5Symbol = {0, 5, 5, 5, 10, 10, 10, 20, 20, 30, 30, 100};
+
     private int[] currentWin3Symbol;
     private int[] currentWin4Symbol;
     private int[] currentWin5Symbol;
@@ -31,7 +34,7 @@ public class SlotGrid {
     private int additionalTier4SymbolChance = 0;
     private int additionalTier3SymbolChance = 0;
     private int additionalTier2SymbolChance = 0;
-    private int tier1SymbolChance = 46;
+    private int tier1SymbolChance = 53;
     private int additionalX2SymbolChance = 0;
     private final int startYCord;
     private final int startXCord;
@@ -342,7 +345,7 @@ public class SlotGrid {
         additionalTier4SymbolChance = 0;
         additionalTier3SymbolChance = 0;
         additionalTier2SymbolChance = 0;
-        tier1SymbolChance = 46;
+        tier1SymbolChance = 53;
         additionalX2SymbolChance = 0;
     }
 
@@ -389,18 +392,19 @@ public class SlotGrid {
         //hier sind die wahrscheinlichkeiten für das setzen der symbole
         int chance = new Random().nextInt(0, 100);
         if (checkForX2Symbol(currentSpot, chance) != icons.size() - 1) {
+            //3%
             if (chance < 5 + additionalX2SymbolChance + additionalSevenSymbolChance) {
                 return icons.size() - 2;
-                //10%
-            } else if (chance < 15 + additionalX2SymbolChance + additionalSevenSymbolChance + additionalTier4SymbolChance) {
+                //6%
+            } else if (chance < 11 + additionalX2SymbolChance + additionalSevenSymbolChance + additionalTier4SymbolChance) {
                 return randomNumber(icons.size() - 4, icons.size()) - 2;
-                //15%
-            } else if (chance < 30 + additionalX2SymbolChance + additionalSevenSymbolChance + additionalTier4SymbolChance + additionalTier3SymbolChance) {
+                //12%
+            } else if (chance < 23 + additionalX2SymbolChance + additionalSevenSymbolChance + additionalTier4SymbolChance + additionalTier3SymbolChance) {
                 return randomNumber(icons.size() - 6, icons.size() - 4);
                 //20%
-            } else if (chance < 50 + additionalX2SymbolChance + additionalSevenSymbolChance + additionalTier4SymbolChance + additionalTier3SymbolChance + additionalTier2SymbolChance) {
+            } else if (chance < 43 + additionalX2SymbolChance + additionalSevenSymbolChance + additionalTier4SymbolChance + additionalTier3SymbolChance + additionalTier2SymbolChance) {
                 return randomNumber(icons.size() - 9, icons.size() - 6);
-                //46%
+                //53%
             } else if (chance < 96) {
                 return randomNumber(1, icons.size() - 9);
                 //4%
@@ -427,7 +431,7 @@ public class SlotGrid {
     }
 
     public BigInteger spinSlotMachine(BigInteger spinAmount) {
-        machine.setSlotXp(machine.getSlotXp().add(spinAmount));
+        machine.setSlotXp(machine.slotXp.add(spinAmount));
         //jede zelle bekommt einen wert,wodurch das bild dazu reinkommt
         for (int i = 0; i < currentSlotGrid.length; i++) {
             rand = calculateSlotSymbol(i);
@@ -543,7 +547,7 @@ public class SlotGrid {
                 if (x2Amount != 0) {
                     tempCoinWin = tempCoinWin.multiply(BigInteger.valueOf(x2Amount * 2L));
                 }
-                tempCoinWin = tempCoinWin.multiply(BigInteger.valueOf(machine.getPet().getMulti()));
+                tempCoinWin = tempCoinWin.multiply(BigInteger.valueOf(machine.pet.getMulti()));
                 PlayerManager.increaseCoins(tempCoinWin);
                 //damit der gewinn am ende aller muster angezeigt werden kann
                 wholeSpinWin = wholeSpinWin.add(tempCoinWin);

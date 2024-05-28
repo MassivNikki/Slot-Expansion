@@ -15,8 +15,11 @@ public class CasinoButton extends JButton {
     }
     private void styleButton(){
         setMargin(new Insets(0, 0, 0, 0));
-        setBackground(new Color(0x2dce98));
+        setOriginalColor();
         setForeground(Color.white);
         setUI(new StyledButtonUI());
+    }
+    protected void setOriginalColor(){
+        setBackground(new Color(0x7EB2DD));
     }
 }

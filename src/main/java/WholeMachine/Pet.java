@@ -3,7 +3,6 @@ package WholeMachine;
 import CasinoStuff.Application;
 
 import javax.swing.*;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -17,7 +16,7 @@ public class Pet {
     protected final ArrayList<String> imageNames = new ArrayList<>(
             Arrays.asList("ghost", "ant", "worm", "beetle", "frog", "salamander", "spider", "scorpion", "snake", "crocodile", "basilisk", "hydra", "dragon"));
     protected final ArrayList<ImageIcon> icons = new ArrayList<>();
-    protected int petTier;
+    public int petTier;
 
     public Pet(int petTier) {
         Application.generateIconsFromFolder(imageNames, icons, "pets", 40);

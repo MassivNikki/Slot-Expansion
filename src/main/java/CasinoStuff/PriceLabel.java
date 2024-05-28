@@ -6,7 +6,8 @@ import java.math.BigInteger;
 import java.text.DecimalFormat;
 
 public class PriceLabel extends JLabel {
-    DecimalFormat scientificFormat = new DecimalFormat("0.###E0");
+    private boolean freeUpgrades = false;
+    DecimalFormat scientificFormat = new DecimalFormat("0.##E0");
     private BigInteger price = BigInteger.valueOf(0);
     private int tierOfSlot = 1;
     private boolean initialPriceSet = false;
@@ -38,6 +39,9 @@ public class PriceLabel extends JLabel {
             this.price = price.multiply(BigInteger.valueOf((long) Math.pow(slotTier, 20)));
             initialPriceSet = true;
         }
+        if(freeUpgrades){
+            this.price = BigInteger.valueOf(1);
+        }
         if(this.price.compareTo(BigInteger.valueOf(10000)) >= 0){
             super.setText(scientificFormat.format(this.price));
         }else super.setText(String.valueOf(this.price));
@@ -61,8 +65,10 @@ public class PriceLabel extends JLabel {
     public void resizeLabel() {
         FontMetrics fontMetrics = getFontMetrics(getFont());
         int textWidth = fontMetrics.stringWidth(getText());
-        setPreferredSize(new Dimension(textWidth, getHeight()));
-        setBounds(getX(), getY(), textWidth, getHeight());
+        if(textWidth > getWidth()){
+            setPreferredSize(new Dimension(textWidth, getHeight()));
+            setBounds(getX(), getY(), textWidth, getHeight());
+        }
     }
 
 }
