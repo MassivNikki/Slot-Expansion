@@ -6,10 +6,11 @@ import java.math.BigInteger;
 import java.util.function.Consumer;
 
 public class CasinoUpgradeButton extends CasinoButton {
+    int position;
     private PriceLabel priceLabel = new PriceLabel();
     private JLabel chanceLabel = new JLabel();
     private Timer backToOrgColor = new Timer(500, e ->  {
-        super.setOriginalColor();
+        colorBackground();
     });
 
     public CasinoUpgradeButton(String description, BigInteger price, int slotTier, String increment, int startX, int startY, JFrame frame) {
@@ -24,7 +25,7 @@ public class CasinoUpgradeButton extends CasinoButton {
         }
         priceLabel = new PriceLabel(price, slotTier);
         priceLabel.updateFormat(priceLabel.getPrice());
-        priceLabel.setBounds(startX + 250, startY, 100, 20);
+        priceLabel.setBounds(startX + 250, startY, 50, 20);
         frame.add(priceLabel);
         if (price.compareTo(BigInteger.valueOf(0)) == 0) {
             disableUpgradable();
@@ -36,25 +37,12 @@ public class CasinoUpgradeButton extends CasinoButton {
         backToOrgColor.setRepeats(false);
     }
 
-    public CasinoUpgradeButton(BigInteger price, int slotTier, String increment, int startX, int startY, JFrame frame, int width, int height, int priceLabelPosition) {
+    public CasinoUpgradeButton(BigInteger price, int slotTier, String increment, Container frame, int priceLabelPosition) {
         super(increment);
+        position = priceLabelPosition;
         colorBackground();
-        setBounds(startX, startY, width, height);
         priceLabel = new PriceLabel(price, slotTier);
         priceLabel.updateFormat(priceLabel.getPrice());
-        switch (priceLabelPosition) {
-            case -1:
-                priceLabel.setBounds(startX, startY - 20, width, 20);
-                priceLabel.setHorizontalAlignment(SwingConstants.CENTER);
-                break;
-            case 0:
-                priceLabel.setBounds(startX + width, startY, width, 20);
-                break;
-            case 1:
-                priceLabel.setBounds(startX, startY + height, width, 20);
-                priceLabel.setHorizontalAlignment(SwingConstants.CENTER);
-                break;
-        }
         frame.add(priceLabel);
         if (price.compareTo(BigInteger.valueOf(0)) == 0) {
             disableUpgradable();
@@ -66,10 +54,26 @@ public class CasinoUpgradeButton extends CasinoButton {
     @Override
     public void setBounds(int x, int y, int width, int height) {
         super.setBounds(x, y, width, height);
-        priceLabel.setBounds(x, y +height, width, 20);
+        switch (position) {
+            case -1:
+                priceLabel.setBounds(x, y - 20, width, 20);
+                priceLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                break;
+            case 0:
+                priceLabel.setBounds(x + width, y, width, 20);
+                break;
+            case 1:
+                priceLabel.setBounds(x, y + height, width, 20);
+                priceLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                break;
+        }
     }
 
     public void removeFromMainframe(JFrame frame) {
+        frame.remove(priceLabel);
+        frame.remove(this);
+    }
+    public void removeFromMachinePanel(JPanel frame) {
         frame.remove(priceLabel);
         frame.remove(this);
     }
@@ -94,7 +98,6 @@ public class CasinoUpgradeButton extends CasinoButton {
 
     private void colorBackground() {
         setBackground(new Color(0x2dce98));
-
     }
 
     public CasinoUpgradeButton() {

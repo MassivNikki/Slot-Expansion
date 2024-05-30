@@ -4,10 +4,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 
 public class PriceLabel extends JLabel {
     private boolean freeUpgrades = false;
-    DecimalFormat scientificFormat = new DecimalFormat("0.##E0");
+    private static DecimalFormat scientificFormat = new DecimalFormat("0.##E0");
     private BigInteger price = BigInteger.valueOf(0);
     private int tierOfSlot = 1;
     private boolean initialPriceSet = false;
@@ -24,11 +25,17 @@ public class PriceLabel extends JLabel {
         setHorizontalAlignment(SwingConstants.CENTER);
         setForeground(Color.yellow);
     }
+    public static DecimalFormat getFormat(){
+        DecimalFormatSymbols dfs = scientificFormat.getDecimalFormatSymbols();
+        dfs.setExponentSeparator("e");
+        dfs.setDecimalSeparator('.');
+        scientificFormat.setDecimalFormatSymbols(dfs);
+        return scientificFormat;
+    }
     public void updateFormat(BigInteger amount){
         if(amount.compareTo(BigInteger.valueOf(10000)) >= 0){
-            super.setText(scientificFormat.format(amount));
+            super.setText(getFormat().format(amount));
         }else super.setText(String.valueOf(amount));
-        setHorizontalAlignment(SwingConstants.LEFT);
     }
 
     //es sollte noch die länge des feldes anpassen -> geht ja mit setbounds x,y textwidth
@@ -43,18 +50,18 @@ public class PriceLabel extends JLabel {
             this.price = BigInteger.valueOf(1);
         }
         if(this.price.compareTo(BigInteger.valueOf(10000)) >= 0){
-            super.setText(scientificFormat.format(this.price));
+            super.setText(getFormat().format(this.price));
         }else super.setText(String.valueOf(this.price));
         resizeLabel();
     }
     public void setCoins(BigInteger coins){
         if(coins.compareTo(BigInteger.valueOf(10000)) >= 0){
-            super.setText(scientificFormat.format(coins));
+            super.setText(getFormat().format(coins));
         }else super.setText(String.valueOf(coins));
     }
 
     public BigInteger increasePrice() {
-        price = price.multiply(price.divide(BigInteger.valueOf(1000)));
+        price = price.multiply(BigInteger.valueOf(20));
         setPrice(price,tierOfSlot);
         return price;
     }

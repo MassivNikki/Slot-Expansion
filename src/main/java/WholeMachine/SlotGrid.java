@@ -14,6 +14,8 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public class SlotGrid {
+    private final boolean stopForWinLines = false;
+
     private final int[] tier1Win3Symbol = {0, 2, 2, 2, 3, 3, 3, 4, 4, 6, 6, 10};
     private final int[] tier2Win3Symbol = {0, 1, 1, 1, 2, 2, 2, 3, 3, 5, 5, 7};
     private final int[] tier3Win3Symbol = {0, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5};
@@ -26,8 +28,7 @@ public class SlotGrid {
     private int[] currentWin3Symbol;
     private int[] currentWin4Symbol;
     private int[] currentWin5Symbol;
-    private final boolean stopForWinLines = false;
-    private final JFrame mainFrame;
+    private final JPanel machinePanel;
     private final ArrayList<String> imageNames = new ArrayList<>(
             Arrays.asList("donner", "jack", "queen", "king", "kirsche", "orange", "zitrone", "leaf", "bell", "bar", "stern", "seven", "x2"));
     private int additionalSevenSymbolChance = 0;
@@ -36,8 +37,6 @@ public class SlotGrid {
     private int additionalTier2SymbolChance = 0;
     private int tier1SymbolChance = 53;
     private int additionalX2SymbolChance = 0;
-    private final int startYCord;
-    private final int startXCord;
     private boolean freeSpinsActivated = false;
     private int freeSpinsLeft = 0;
     private final int slotMultiplier = 1;
@@ -60,10 +59,8 @@ public class SlotGrid {
     private List<int[]> currentAdditionalWinningGrid;
 
 
-    public SlotGrid(JFrame mainFrame, int startXCord, int startYCord, SlotMachine machine) {
-        this.mainFrame = mainFrame;
-        this.startXCord = startXCord;
-        this.startYCord = startYCord + 60;
+    public SlotGrid(JPanel machinePanel, SlotMachine machine) {
+        this.machinePanel = machinePanel;
         this.machine = machine;
         currentSlotGrid = tier1SlotGrid;
         currentWin3Symbol = tier1Win3Symbol;
@@ -73,10 +70,10 @@ public class SlotGrid {
         generateSlotGridWithImages(3);
         freeSpinsLabel = new JLabel();
         freeSpinsLabel.setForeground(Color.CYAN);
-        freeSpinsLabel.setBounds(startXCord, startYCord + 30, 50, 20);
+        freeSpinsLabel.setBounds(0,  90, 50, 20);
         freeSpinsLabel.setFont(new Font("Arial", Font.BOLD, 18));
         freeSpinsLabel.setVisible(false);
-        mainFrame.add(freeSpinsLabel);
+        machinePanel.add(freeSpinsLabel);
     }
 
     public int getWinLanes() {
@@ -352,7 +349,7 @@ public class SlotGrid {
     private void generateSlotGridWithImages(int laneLength) {
         int xoffset = 0;
         int yoffset = 0;
-        labels.forEach(mainFrame::remove);
+        labels.forEach(machinePanel::remove);
         labels.clear();
         for (int i = 0; i < currentSlotGrid.length; i++) {
             JLabel label = new JLabel();
@@ -364,7 +361,7 @@ public class SlotGrid {
                 yoffset += 50;
                 xoffset = 0;
             }
-            label.setBounds(startXCord + xoffset, startYCord + yoffset, 50, 50);
+            label.setBounds(75+xoffset, 170+ yoffset, 50, 50);
             label.setHorizontalAlignment(SwingConstants.CENTER);
             label.setVerticalAlignment(SwingConstants.CENTER);
             label.setBorder(normalBorder);
@@ -372,7 +369,7 @@ public class SlotGrid {
             xoffset += 50;
         }
         rowAmount = laneLength;
-        labels.forEach(mainFrame::add);
+        labels.forEach(machinePanel::add);
         labels.getFirst().setIcon(icons.getFirst());
     }
 
@@ -431,7 +428,7 @@ public class SlotGrid {
     }
 
     public BigInteger spinSlotMachine(BigInteger spinAmount) {
-        machine.setSlotXp(machine.slotXp.add(spinAmount));
+        machine.slotLevelComponent.addXp(spinAmount);
         //jede zelle bekommt einen wert,wodurch das bild dazu reinkommt
         for (int i = 0; i < currentSlotGrid.length; i++) {
             rand = calculateSlotSymbol(i);
@@ -440,7 +437,7 @@ public class SlotGrid {
         }
         //falls keine free spins sind werden coins abgezogen vom geld und der player keirgt es als xp
         if (!freeSpinsActivated) {
-            if (spinAmount.divide(BigInteger.valueOf(getWinLanes())).compareTo(BigInteger.valueOf(machine.getMinimumCoinsPerLane())) > 0) {
+            if (spinAmount.divide(BigInteger.valueOf(getWinLanes())).compareTo(machine.getMinimumCoinsPerLane()) > 0) {
                 PlayerManager.decreaseCoins(spinAmount);
             }
         } else {

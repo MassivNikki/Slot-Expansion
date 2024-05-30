@@ -4,10 +4,12 @@ import CasinoStuff.*;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.math.BigInteger;
 import java.util.ArrayList;
 
-public class UpgradeArea {
+public class UpgradeArea extends JFrame {
 
     protected final ArrayList<CasinoUpgradeButton> upgradeButtons = new ArrayList<>();
     protected final int[] symbolOrgChances = {3, 6, 12, 20, 53, 2};
@@ -16,25 +18,23 @@ public class UpgradeArea {
     protected BigInteger tier3SymbolPrice = BigInteger.valueOf(50000);
     protected BigInteger tier2SymbolPrice = BigInteger.valueOf(10000);
     protected BigInteger x2SymbolPrice = BigInteger.valueOf(200000);
-    protected BigInteger rowPrice = BigInteger.valueOf(1000000000);
     protected BigInteger newGridPrice = BigInteger.valueOf(200000);
     protected int addedGrids = 0;
-    private final JFrame mainFrame;
     private final SlotGrid slotGrid;
-    private final UpgradeManager upgradeManager;
-    private final int startYCord;
-    private final int startXCord;
+    protected final UpgradeManager upgradeManager;
     private int totalUpgradeAmount = 0;
     private SlotMachine machine;
 
-    public UpgradeArea(JFrame mainFrame, SlotGrid slotGrid, int startXCord, int startYCord, SlotMachine machine) {
-        this.mainFrame = mainFrame;
+    public UpgradeArea(SlotGrid slotGrid, SlotMachine machine) {
         this.slotGrid = slotGrid;
-        this.startXCord = startXCord;
-        this.startYCord = startYCord;
         this.machine = machine;
         upgradeManager = new UpgradeManager(this.slotGrid, this);
-        generateStaticLabels();
+        setSize(350, 300);
+        setLocation(Application.mainFrame.getX() + 35, Application.mainFrame.getY() + machine.machinePanel.getHeight() / 2);
+        setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
+        setLayout(null);
+        getContentPane().setBackground(Color.black);
+        setTitle("Upgrades for machine " + machine.slotTier);
     }
 
     public int getAddedGrids() {
@@ -45,16 +45,7 @@ public class UpgradeArea {
         this.addedGrids = addedGrids;
     }
 
-    private void generateStaticLabels() {
-        JLabel upgradeInfo = new JLabel("Upgrades");
-        upgradeInfo.setForeground(Color.white);
-        upgradeInfo.setBounds(startXCord, startYCord + 220, 300, 20);
-        upgradeInfo.setFont(new Font("Arial", Font.BOLD, 17));
-        mainFrame.add(upgradeInfo);
-    }
-
     public void initiate() {
-        generateAddRowButtons();
         for (int i = 0; i < addedGrids; i++) {
             slotGrid.addNewWinningGrid(i);
         }
@@ -75,7 +66,7 @@ public class UpgradeArea {
     }
 
     private void addNewUpgrade(String upgradeInfo, int symbolAdditionalChance, int originalChance, int maxChance, int winSymbol, BigInteger price, String kind) {
-        upgradeButtons.add(new CasinoUpgradeButton(upgradeInfo, price, machine.slotTier, "+1", startXCord, startYCord + 240 + totalUpgradeAmount * 20, mainFrame));
+        upgradeButtons.add(new CasinoUpgradeButton(upgradeInfo, price, machine.slotTier, "+1", 10, 10+ totalUpgradeAmount * 20, this));
         CasinoUpgradeButton currentButton = upgradeButtons.getLast();
         for (int i = 0; i < symbolAdditionalChance; i++) {
             currentButton.increasePrice();
@@ -85,12 +76,16 @@ public class UpgradeArea {
             currentButton.disableUpgradable();
         }
         determineUpgradeMethod(currentButton, winSymbol);
-        mainFrame.add(currentButton);
+        add(currentButton);
         totalUpgradeAmount++;
     }
 
     private void determineUpgradeMethod(CasinoUpgradeButton btt, int symbol) {
         switch (symbol) {
+            case 10:
+                btt.addCustomActionListener(e -> {
+                    upgradeManager.increaseAdditionalSevenSymbolChance();
+                });
             case 7:
                 btt.addCustomActionListener(e -> {
                     upgradeManager.increaseAdditionalSevenSymbolChance();
@@ -124,25 +119,5 @@ public class UpgradeArea {
         }
     }
 
-    private void generateAddRowButtons() {
 
-        CasinoUpgradeButton addNewRowUpgradeButton =
-                new CasinoUpgradeButton(rowPrice, machine.slotTier, "+1 Row",
-                        startXCord + 50 * slotGrid.getRowAmount(), startYCord + 60,
-                        mainFrame, 50, 150, PriceLabelPosition.UNDER);
-        addNewRowUpgradeButton.addCustomActionListener(e -> {
-            if (slotGrid.getRowAmount() < 5) {
-                upgradeManager.upgradeGrid();
-                if (slotGrid.getRowAmount() == 5) {
-                    addNewRowUpgradeButton.removeFromMainframe(mainFrame);
-                    mainFrame.repaint();
-                } else {
-                    addNewRowUpgradeButton.setBounds(startXCord + 50 * slotGrid.getRowAmount(), startYCord + 60, 50, 150);
-                }
-            }
-
-        });
-        mainFrame.add(addNewRowUpgradeButton);
-
-    }
 }
