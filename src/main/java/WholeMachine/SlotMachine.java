@@ -133,6 +133,9 @@ public class SlotMachine {
         addNewRowUpgradeButton.addCustomActionListener(e -> {
             if (slotGrid.getRowAmount() < 5) {
                 upgradeArea.upgradeManager.upgradeGrid();
+                pet.setTier(-1);
+                setPetImage(pet.getIcon());
+                machinePanel.repaint();
                 if (slotGrid.getRowAmount() == 5) {
                     addNewRowUpgradeButton.removeFromMachinePanel(machinePanel);
                     machinePanel.repaint();

@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 public class SlotGrid {
     private final boolean stopForWinLines = false;
 
-    private final int[] tier1Win3Symbol = {0, 2, 2, 2, 3, 3, 3, 4, 4, 6, 6, 10};
+    private final int[] tier1Win3Symbol = {0, 1, 1, 1, 3, 3, 3, 4, 4, 6, 6, 10};
     private final int[] tier2Win3Symbol = {0, 1, 1, 1, 2, 2, 2, 3, 3, 5, 5, 7};
     private final int[] tier3Win3Symbol = {0, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5};
 
@@ -40,6 +40,11 @@ public class SlotGrid {
     private boolean freeSpinsActivated = false;
     private int freeSpinsLeft = 0;
     private final int slotMultiplier = 1;
+
+    protected boolean tier2SymbolsUnlocked = true;
+    protected boolean tier3SymbolsUnlocked = true;
+    protected boolean tier4SymbolsUnlocked = true;
+    protected boolean sevenSymbolsUnlocked = true;
 
     private final JLabel freeSpinsLabel;
     private final SlotMachine machine;
@@ -390,16 +395,16 @@ public class SlotGrid {
         int chance = new Random().nextInt(0, 100);
         if (checkForX2Symbol(currentSpot, chance) != icons.size() - 1) {
             //3%
-            if (chance < 5 + additionalX2SymbolChance + additionalSevenSymbolChance) {
+            if (chance < 5 + additionalX2SymbolChance + additionalSevenSymbolChance && sevenSymbolsUnlocked) {
                 return icons.size() - 2;
                 //6%
-            } else if (chance < 11 + additionalX2SymbolChance + additionalSevenSymbolChance + additionalTier4SymbolChance) {
+            } else if (chance < 11 + additionalX2SymbolChance + additionalSevenSymbolChance + additionalTier4SymbolChance && tier4SymbolsUnlocked) {
                 return randomNumber(icons.size() - 4, icons.size()) - 2;
                 //12%
-            } else if (chance < 23 + additionalX2SymbolChance + additionalSevenSymbolChance + additionalTier4SymbolChance + additionalTier3SymbolChance) {
+            } else if (chance < 23 + additionalX2SymbolChance + additionalSevenSymbolChance + additionalTier4SymbolChance + additionalTier3SymbolChance && tier3SymbolsUnlocked) {
                 return randomNumber(icons.size() - 6, icons.size() - 4);
                 //20%
-            } else if (chance < 43 + additionalX2SymbolChance + additionalSevenSymbolChance + additionalTier4SymbolChance + additionalTier3SymbolChance + additionalTier2SymbolChance) {
+            } else if (chance < 43 + additionalX2SymbolChance + additionalSevenSymbolChance + additionalTier4SymbolChance + additionalTier3SymbolChance + additionalTier2SymbolChance && tier2SymbolsUnlocked) {
                 return randomNumber(icons.size() - 9, icons.size() - 6);
                 //53%
             } else if (chance < 96) {

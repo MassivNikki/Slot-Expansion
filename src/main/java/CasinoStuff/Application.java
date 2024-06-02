@@ -82,7 +82,7 @@ public class Application {
                 currentMachine.slotGrid.setAdditionalTier2SymbolChance(Integer.parseInt(values[6]));
                 currentMachine.slotGrid.setTier1SymbolChance(Integer.parseInt(values[7]));
                 currentMachine.slotGrid.setAdditionalX2SymbolChance(Integer.parseInt(values[8]));
-                currentMachine.upgradeArea.setAddedGrids(Integer.parseInt(values[9]));
+                currentMachine.upgradeArea.addedGrids = Integer.parseInt(values[9]);
                 currentMachine.setPet(new Pet(Integer.parseInt(values[10])));
                 currentMachine.slotGrid.setRowAmount(Integer.parseInt(values[11]));
                 currentMachine.autoCooldown = Integer.parseInt(values[12]);
@@ -114,7 +114,7 @@ public class Application {
                             .append(",").append(machine.slotGrid.getAdditionalTier2SymbolChance())
                             .append(",").append(machine.slotGrid.getTier1SymbolChance())
                             .append(",").append(machine.slotGrid.getAdditionalX2SymbolChance())
-                            .append(",").append(machine.upgradeArea.getAddedGrids())
+                            .append(",").append(machine.upgradeArea.addedGrids)
                             .append(",").append(machine.pet.petTier)
                             .append(",").append(machine.slotGrid.getRowAmount())
                             .append(",").append(machine.autoCooldown)
@@ -123,7 +123,6 @@ public class Application {
                             .append(",").append(machine.minIncreased)
                             .append(",").append(machine.maxIncreased);
                     writer.println(sb);
-                    System.out.println(sb);
                 }
             }
 

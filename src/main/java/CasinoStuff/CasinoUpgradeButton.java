@@ -13,7 +13,7 @@ public class CasinoUpgradeButton extends CasinoButton {
         colorBackground();
     });
 
-    public CasinoUpgradeButton(String description, BigInteger price, int slotTier, String increment, int startX, int startY, JFrame frame) {
+    public CasinoUpgradeButton(String description, BigInteger price, int slotTier, String increment, int startX, int startY, JPanel frame) {
         super(increment);
         colorBackground();
         setBounds(startX + 210, startY, 30, 20);

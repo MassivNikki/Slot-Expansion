@@ -25,6 +25,8 @@ public class Pet {
     public void setTier(int tier) {
         if (tier == -1) {
             this.petTier = -1;
+            multi = 1;
+            icon = null;
             return;
         }
         multi = petMultis[tier];
