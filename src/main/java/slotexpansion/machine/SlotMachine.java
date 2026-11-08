@@ -1,6 +1,7 @@
-package WholeMachine;
+package slotexpansion.machine;
 
-import CasinoStuff.*;
+import slotexpansion.player.PlayerManager;
+import slotexpansion.ui.*;
 
 import javax.swing.*;
 import javax.swing.border.Border;

@@ -1,4 +1,4 @@
-package CasinoStuff;
+package slotexpansion.ui;
 
 import javax.swing.*;
 import javax.swing.plaf.basic.BasicProgressBarUI;

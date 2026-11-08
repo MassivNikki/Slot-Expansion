@@ -1,4 +1,6 @@
-package CasinoStuff;
+package slotexpansion.ui;
+
+import slotexpansion.player.PlayerManager;
 
 import javax.swing.*;
 import java.awt.*;

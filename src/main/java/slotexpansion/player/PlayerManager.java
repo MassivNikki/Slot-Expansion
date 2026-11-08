@@ -1,4 +1,6 @@
-package CasinoStuff;
+package slotexpansion.player;
+
+import slotexpansion.ui.PriceLabel;
 
 import javax.swing.*;
 import java.awt.*;

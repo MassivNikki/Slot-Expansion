@@ -1,6 +1,6 @@
-package WholeMachine;
+package slotexpansion.machine;
 
-import CasinoStuff.Application;
+import slotexpansion.app.Application;
 
 import javax.swing.*;
 import java.util.ArrayList;

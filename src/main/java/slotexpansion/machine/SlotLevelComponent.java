@@ -1,7 +1,7 @@
-package WholeMachine;
+package slotexpansion.machine;
 
-import CasinoStuff.CustomProgressBarUI;
-import CasinoStuff.PriceLabel;
+import slotexpansion.ui.CustomProgressBarUI;
+import slotexpansion.ui.PriceLabel;
 
 import javax.swing.*;
 import java.awt.*;

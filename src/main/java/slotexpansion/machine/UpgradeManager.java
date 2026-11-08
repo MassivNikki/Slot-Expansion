@@ -1,7 +1,7 @@
-package WholeMachine;
+package slotexpansion.machine;
 
-import CasinoStuff.Application;
-import CasinoStuff.CasinoUpgradeButton;
+import slotexpansion.app.Application;
+import slotexpansion.ui.CasinoUpgradeButton;
 
 /**
  * Applies purchases made in an {@link UpgradeArea} to its machine's slot grid.

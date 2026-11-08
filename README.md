@@ -10,7 +10,7 @@ From the repository root, build with Maven and launch the main class:
 
 ```shell
 mvn package
-java -cp target/classes Main
+java -cp target/classes slotexpansion.Main
 ```
 
 The game loads its image assets and `SaveData` relative to the working
@@ -43,9 +43,12 @@ The symbol and pet artwork is stored in `SlotImages/` and `pets/`.
 
 ```text
 src/main/java/
-├── Main.java                    # Application entry point
-├── CasinoStuff/                 # Window setup, player balance, Swing controls and styling
-└── WholeMachine/                # Slot machines, grids, leveling, pets and upgrades
+└── slotexpansion/
+    ├── Main.java                # Application entry point
+    ├── app/                     # Startup, window lifecycle, and save/load coordination
+    ├── machine/                 # Machine gameplay, grids, leveling, pets, and upgrades
+    ├── player/                  # Shared player coin balance
+    └── ui/                      # Main window and reusable Swing controls and styling
 ```
 
 `Application` coordinates startup, loading, saving, and machine creation.

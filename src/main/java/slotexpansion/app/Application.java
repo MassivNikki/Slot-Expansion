@@ -1,7 +1,11 @@
-package CasinoStuff;
+package slotexpansion.app;
 
-import WholeMachine.Pet;
-import WholeMachine.SlotMachine;
+import slotexpansion.machine.Pet;
+import slotexpansion.machine.SlotMachine;
+import slotexpansion.player.PlayerManager;
+import slotexpansion.ui.CasinoUpgradeButton;
+import slotexpansion.ui.MainFrame;
+import slotexpansion.ui.PriceLabelPosition;
 
 import javax.swing.*;
 import java.awt.*;

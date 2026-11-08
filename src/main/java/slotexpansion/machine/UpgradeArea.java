@@ -1,6 +1,7 @@
-package WholeMachine;
+package slotexpansion.machine;
 
-import CasinoStuff.*;
+import slotexpansion.app.Application;
+import slotexpansion.ui.*;
 
 import javax.swing.*;
 import java.awt.*;

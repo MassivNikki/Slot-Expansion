@@ -1,4 +1,4 @@
-package CasinoStuff;
+package slotexpansion.ui;
 
 /** Positions an upgrade button's price label relative to the button. */
 public class PriceLabelPosition {
