@@ -28,8 +28,10 @@ public class Application {
                     + "additionalTier3SymbolChance,additionalTier2SymbolChance,tier1SymbolChance,"
                     + "additionalX2SymbolChance,addedPaylines,petTier,columnCount,autoCooldown,"
                     + "manualCooldown,autoSpinUnlocked,minStakeUpgrades,maxStakeUpgrades";
+    /** One starting machine and balance for a new or empty save file. */
+    private static final String DEFAULT_SAVE_DATA_RECORD =
+            "1000,1,0,0,0,0,0,51,0,0,-1,3,1000,500,false,0,0";
 
-    private final boolean skipSavingData = true;
     private final ArrayList<JPanel> machinePanels = new ArrayList<>();
     private final String saveDataFilePath = "SaveData";
     private final ArrayList<String> savedMachineRecords = new ArrayList<>();
@@ -39,7 +41,7 @@ public class Application {
     public static int maxTier3Chance = 30;
     public static int maxTier2Chance = 35;
     public static int maxX2Chance = 5;
-    private BigInteger machinePurchasePrice = BigInteger.valueOf(50000000000L);
+    private BigInteger machinePurchasePrice = BigInteger.valueOf(100000);
     private int machineCount = 0;
     private final ArrayList<Integer> machineYPositions = new ArrayList<>(Arrays.asList(60, 60, 60, 60, 550, 550, 550, 550));
     private final ArrayList<Integer> machineXPositions = new ArrayList<>(Arrays.asList(10, 420, 830, 1240, 10, 420, 830, 1240));
@@ -79,7 +81,7 @@ public class Application {
     }
 
     /**
-     * Reads saved machine records once so their count and state can both be reused.
+     * Reads saved records once, using a fresh-game record when the file is empty.
      */
     private void loadSavedMachineRecords() {
         try (BufferedReader reader = new BufferedReader(new FileReader(saveDataFilePath))) {
@@ -90,9 +92,19 @@ public class Application {
                     savedMachineRecords.add(trimmedRecord);
                 }
             }
-            machineCount = savedMachineRecords.size();
+        } catch (FileNotFoundException e) {
+            savedMachineRecords.add(DEFAULT_SAVE_DATA_RECORD);
         } catch (IOException e) {
             e.printStackTrace();
+        }
+        if (savedMachineRecords.isEmpty()) {
+            savedMachineRecords.add(DEFAULT_SAVE_DATA_RECORD);
+        }
+        machineCount = savedMachineRecords.size();
+        for (int purchasedTier = 1; purchasedTier < machineCount; purchasedTier++) {
+            machinePurchasePrice = machinePurchasePrice
+                    .multiply(BigInteger.valueOf(2))
+                    .multiply(BigInteger.valueOf(purchasedTier).pow(2));
         }
     }
 
@@ -141,14 +153,10 @@ public class Application {
     private void saveProgress() {
         try (PrintWriter writer = new PrintWriter(new FileWriter(saveDataFilePath))) {
             writer.println(SAVE_DATA_HEADER);
-            if (!skipSavingData) {
-                for (SlotMachine machine : machines) {
-                    StringBuilder saveRecord = new StringBuilder();
-                    appendMachineState(saveRecord, machine);
-                    writer.println(saveRecord);
-                }
-            }else{
-                writer.print("12345678910111213,1,0,0,0,0,0,53,0,5,-1,5,1000,500,false,0,0");
+            for (SlotMachine machine : machines) {
+                StringBuilder saveRecord = new StringBuilder();
+                appendMachineState(saveRecord, machine);
+                writer.println(saveRecord);
             }
 
         } catch (IOException e) {

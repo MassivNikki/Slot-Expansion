@@ -21,6 +21,8 @@ import java.util.logging.Logger;
  */
 public class SlotGrid {
     private static final Logger LOGGER = Logger.getLogger(SlotGrid.class.getName());
+    // Raises the low base paytable while leaving later pet multipliers meaningful.
+    private static final int PAYOUT_SCALING_FACTOR = 2;
 
     private final boolean showWinningPaylines = true;
 
@@ -43,7 +45,7 @@ public class SlotGrid {
     private int additionalTier4SymbolChance = 0;
     private int additionalTier3SymbolChance = 0;
     private int additionalTier2SymbolChance = 0;
-    private int tier1SymbolChance = 53;
+    private int tier1SymbolChance = 51;
     private int additionalX2SymbolChance = 0;
     private boolean freeSpinsActivated = false;
     private int freeSpinsLeft = 0;
@@ -414,7 +416,7 @@ public class SlotGrid {
                 return randomInt(icons.size() - 6, icons.size() - 4);
             } else if (chance < 43 + additionalX2SymbolChance + additionalSevenSymbolChance + additionalTier4SymbolChance + additionalTier3SymbolChance + additionalTier2SymbolChance && tier2SymbolsUnlocked) {
                 return randomInt(icons.size() - 9, icons.size() - 6);
-            } else if (chance < 96) {
+            } else if (chance < 94) {
                 return randomInt(1, icons.size() - 9);
             } else return 0;
         } else return icons.size() - 1;
@@ -453,9 +455,9 @@ public class SlotGrid {
             currentSlotGrid[i] = symbol;
             labels.get(i).setIcon(icons.get(symbol));
         }
-        // The current stake is charged only on paid spins above the per-payline minimum.
+        // The minimum stake is free; larger paid stakes are charged once per spin.
         if (!freeSpinsActivated) {
-            if (spinAmount.divide(BigInteger.valueOf(getWinLanes())).compareTo(machine.getMinimumCoinsPerLane()) > 0) {
+            if (spinAmount.compareTo(machine.getMinimumCoinsPerLane()) > 0) {
                 PlayerManager.decreaseCoins(spinAmount);
             }
         } else {
@@ -463,7 +465,7 @@ public class SlotGrid {
             if (freeSpinsLeft == 0) {
                 freeSpinsActivated = false;
                 freeSpinsLabel.setVisible(false);
-                additionalX2SymbolChance -= 5;
+                additionalX2SymbolChance /= 3;
             }
         }
         BigInteger win = calculateTotalWin(spinAmount);
@@ -495,7 +497,6 @@ public class SlotGrid {
         }
         if (totalWin.signum() > 0) {
             PlayerManager.increaseCoins(totalWin);
-
         }
         return totalWin;
     }
@@ -515,8 +516,9 @@ public class SlotGrid {
      * the prefix, leaving the already matched symbols eligible for a payout.</p>
      *
      * <p>Prefixes of three, four, or five symbols use the corresponding current
-     * payout table. The line stake is multiplied by that table value, then by
-     * two for each counted {@code x2} symbol and by the machine pet's multiplier.
+     * payout table. The line stake is multiplied by that table value and the
+     * base payout scale, then by two for each counted {@code x2} symbol and by
+     * the machine pet's multiplier.
      * {@code calculateTotalWin} adds the combined payout to the player's balance.
      * When {@code showWinningPaylines} is enabled, matched cells use the win
      * border and the remaining cells in the same line use the next-payout
@@ -571,27 +573,52 @@ public class SlotGrid {
 
         // Only three-, four-, and five-symbol prefixes have payout tables.
         if (matchingSymbols > 2) {
+            int paytableMultiplier = 0;
             switch (matchingSymbols) {
                 case 3:
-                    lineWin = spinAmount.multiply(BigInteger.valueOf(currentWin3Symbol[winningSymbol]));
+                    paytableMultiplier = currentWin3Symbol[winningSymbol];
                     break;
                 case 4:
-                    lineWin = spinAmount.multiply(BigInteger.valueOf(currentWin4Symbol[winningSymbol]));
+                    paytableMultiplier = currentWin4Symbol[winningSymbol];
                     break;
                 case 5:
-                    lineWin = spinAmount.multiply(BigInteger.valueOf(currentWin5Symbol[winningSymbol]));
+                    paytableMultiplier = currentWin5Symbol[winningSymbol];
                     break;
             }
 
-            // Apply x2 and pet multipliers to the table-based line payout.
-            if (multiplierSymbols != 0) {
-                lineWin = lineWin.multiply(BigInteger.valueOf(multiplierSymbols * 2L));
-            }
-            addPayoutGrid(matchingSymbols,winningGrid, lineWin);
-            lineWin = lineWin.multiply(BigInteger.valueOf(machine.pet.getMulti()));
+            BigInteger basePayout = spinAmount.multiply(BigInteger.valueOf(paytableMultiplier));
+            BigInteger scaledBasePayout =
+                    basePayout.multiply(BigInteger.valueOf(PAYOUT_SCALING_FACTOR));
+            BigInteger x2Multiplier = BigInteger.valueOf(2).pow(multiplierSymbols);
+            BigInteger payoutAfterX2 = scaledBasePayout.multiply(x2Multiplier);
+            int petMultiplier = machine.pet.getMulti();
+            lineWin = payoutAfterX2.multiply(BigInteger.valueOf(petMultiplier));
             if (lineWin.signum() > 0) {
-                LOGGER.info("Winning line: symbols=" + matchingSymbols + ", symbol=" + winningSymbol
-                        + ", win=" + lineWin + ", multiplier=" + lineWin.divide(spinAmount));
+                addPayoutGrid(matchingSymbols, winningGrid, lineWin);
+                BigInteger totalMultiplier = BigInteger.valueOf(paytableMultiplier)
+                        .multiply(BigInteger.valueOf(PAYOUT_SCALING_FACTOR))
+                        .multiply(x2Multiplier)
+                        .multiply(BigInteger.valueOf(petMultiplier));
+                int levelMultiplier = machine.slotLevel / 2;
+                BigInteger linePayoutAfterLevelMultiplier =
+                        lineWin.multiply(BigInteger.valueOf(levelMultiplier));
+                totalMultiplier = totalMultiplier.multiply(BigInteger.valueOf(levelMultiplier));
+                LOGGER.info("Winning line: symbol=" + winningSymbol
+                        + "\nmatchedSymbols=" + matchingSymbols
+                        + "\nstake=" + spinAmount
+                        + "\npaytableMultiplier=" + paytableMultiplier
+                        + "\nbasePayout=" + basePayout
+                        + "\npayoutScale=" + PAYOUT_SCALING_FACTOR
+                        + "\nafterPayoutScale=" + scaledBasePayout
+                        + "\nx2Symbols=" + multiplierSymbols
+                        + "\nx2Multiplier=" + x2Multiplier
+                        + "\nafterX2=" + payoutAfterX2
+                        + "\npetMultiplier=" + petMultiplier
+                        + "\nafterPetMultiplier=" + lineWin
+                        + "\nlevelMultiplier=" + levelMultiplier
+                        + "\ntotalMultiplier=" + totalMultiplier
+                        + "\nlinePayoutAfterLevelMultiplier=" + linePayoutAfterLevelMultiplier);
+                lineWin = linePayoutAfterLevelMultiplier;
             }
         }
 
@@ -667,16 +694,15 @@ public class SlotGrid {
         }
         if (freeSpinSymbolAmount == 3) {
             if (!freeSpinsActivated) {
-                additionalX2SymbolChance += 5;
+                additionalX2SymbolChance *= 3;
             }
             freeSpinsLeft += 10;
             return true;
             // Each thunder symbol beyond three adds another ten free spins.
         } else if (freeSpinSymbolAmount > 3) {
             if (!freeSpinsActivated) {
-                additionalX2SymbolChance += 5;
+                additionalX2SymbolChance *= 3;
             }
-
             freeSpinsLeft += (freeSpinSymbolAmount - 3) * 10 + 10;
             return true;
         }

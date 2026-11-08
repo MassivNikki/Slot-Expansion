@@ -45,7 +45,7 @@ public class PriceLabel extends JLabel {
         if(initialPriceSet){
             this.price = price;
         }else{
-            this.price = price.multiply(BigInteger.valueOf((long) Math.pow(slotTier, 20)));
+            this.price = price.multiply(BigInteger.valueOf(slotTier).pow(2));
             initialPriceSet = true;
         }
         if(freeUpgrades){
@@ -62,9 +62,9 @@ public class PriceLabel extends JLabel {
         }else super.setText(String.valueOf(coins));
     }
 
-    /** Multiplies the current price by the existing per-purchase factor. */
+    /** Doubles the current price for the next purchase. */
     public BigInteger increasePrice() {
-        price = price.multiply(BigInteger.valueOf(20));
+        price = price.multiply(BigInteger.valueOf(2));
         setPrice(price,tierOfSlot);
         return price;
     }

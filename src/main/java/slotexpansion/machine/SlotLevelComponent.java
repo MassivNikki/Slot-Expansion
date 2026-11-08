@@ -104,8 +104,9 @@ public class SlotLevelComponent extends JComponent {
 
 
     protected void calculateNextLevelXpAmount() {
-        // The threshold is the current level to the seventh power, divided by three, plus 200.
-        amountForLevelUp = BigInteger.valueOf(((long) (Math.pow(slotLevel, 7) / 3)) + 200);
+        // A quadratic threshold keeps early levels attainable while requiring more XP over time.
+        BigInteger level = BigInteger.valueOf(slotLevel);
+        amountForLevelUp = level.multiply(level).multiply(BigInteger.valueOf(200));
         nextLevelXpLabel.updateFormat(amountForLevelUp);
     }
 

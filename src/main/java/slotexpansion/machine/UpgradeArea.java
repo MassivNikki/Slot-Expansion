@@ -15,13 +15,13 @@ public class UpgradeArea extends JFrame {
 
     protected final ArrayList<CasinoUpgradeButton> upgradeIncreaseButtons = new ArrayList<>();
     // Baseline probabilities in the same order as the symbol upgrade controls.
-    protected final int[] symbolOrgChances = {3, 6, 12, 20, 53, 2};
-    protected BigInteger sevenSymbolPrice = BigInteger.valueOf(200000);
-    protected BigInteger tier4SymbolPrice = BigInteger.valueOf(100000);
-    protected BigInteger tier3SymbolPrice = BigInteger.valueOf(50000);
-    protected BigInteger tier2SymbolPrice = BigInteger.valueOf(10000);
-    protected BigInteger x2SymbolPrice = BigInteger.valueOf(200000);
-    protected BigInteger newGridPrice = BigInteger.valueOf(200000);
+    protected final int[] symbolOrgChances = {3, 6, 12, 20, 51, 2};
+    protected BigInteger sevenSymbolPrice = BigInteger.valueOf(800);
+    protected BigInteger tier4SymbolPrice = BigInteger.valueOf(600);
+    protected BigInteger tier3SymbolPrice = BigInteger.valueOf(300);
+    protected BigInteger tier2SymbolPrice = BigInteger.valueOf(150);
+    protected BigInteger x2SymbolPrice = BigInteger.valueOf(1000);
+    protected BigInteger newGridPrice = BigInteger.valueOf(600);
     public int addedGrids = 0;
     private final SlotGrid slotGrid;
     protected final UpgradeManager upgradeManager;
