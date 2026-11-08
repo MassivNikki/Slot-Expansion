@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -23,7 +22,7 @@ import java.util.logging.Logger;
 public class SlotGrid {
     private static final Logger LOGGER = Logger.getLogger(SlotGrid.class.getName());
 
-    private final boolean stopForWinLines = false;
+    private final boolean showWinningPaylines = true;
 
     private final int[] tier1Win3Symbol = {0, 1, 1, 1, 3, 3, 3, 4, 4, 6, 6, 10};
     private final int[] tier2Win3Symbol = {0, 1, 1, 1, 2, 2, 2, 3, 3, 5, 5, 7};
@@ -55,6 +54,7 @@ public class SlotGrid {
     protected boolean sevenSymbolsUnlocked = true;
 
     private final JLabel freeSpinsLabel;
+    private final JLabel currentPayoutLaneLabel;
     private final SlotMachine machine;
     private final int[] tier3SlotGrid = new int[15];
     private final int[] tier2SlotGrid = new int[12];
@@ -64,13 +64,17 @@ public class SlotGrid {
     private final List<JLabel> labels = new ArrayList<>();
     private final ArrayList<ImageIcon> icons = new ArrayList<>();
     private final Border normalBorder = BorderFactory.createLineBorder(Color.black);
-    private final Border winBorder = BorderFactory.createLineBorder(Color.YELLOW);
-    private final Border slotsLeftBorder = BorderFactory.createLineBorder(Color.GREEN);
+    private final Border winningLineBorder = BorderFactory.createLineBorder(Color.YELLOW);
+    private final Border nextPayoutBorder = BorderFactory.createLineBorder(Color.GREEN);
     private final Border freeSpinBorder = BorderFactory.createLineBorder(Color.BLUE);
     private List<int[]> winningGrids;
     private List<int[]> currentAdditionalWinningGrid;
     private final Random rand = new Random();
-    private Timer winHighlightResetTimer;
+    private Timer winHighlightTimer;
+    private List<int[]> lastPayoutGrids;
+    private BigInteger[] lastPayouts;
+    private int payoutGridHighlightLoopCounter = 0;
+
 
 
     public SlotGrid(JPanel machinePanel, SlotMachine machine) {
@@ -87,7 +91,13 @@ public class SlotGrid {
         freeSpinsLabel.setBounds(0,  90, 50, 20);
         freeSpinsLabel.setFont(new Font("Arial", Font.BOLD, 18));
         freeSpinsLabel.setVisible(false);
+        currentPayoutLaneLabel = new JLabel();
+        currentPayoutLaneLabel.setForeground(Color.ORANGE);
+        currentPayoutLaneLabel.setBounds(30,  235, 50, 20);
+        currentPayoutLaneLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        currentPayoutLaneLabel.setVisible(true);
         machinePanel.add(freeSpinsLabel);
+        machinePanel.add(currentPayoutLaneLabel);
     }
 
     /** Returns the number of paylines currently active on this machine. */
@@ -428,14 +438,14 @@ public class SlotGrid {
 
     /** Generates one outcome and settles its stake, winnings, and free spins. */
     public BigInteger spinSlotMachine(BigInteger spinAmount) {
-        if (winHighlightResetTimer != null) {
-            winHighlightResetTimer.stop();
+        if (winHighlightTimer != null) {
+            winHighlightTimer.stop();
         }
-        labels.forEach(label -> {
-            if (label.getBorder() != normalBorder) {
-                label.setBorder(normalBorder);
-            }
-        });
+        payoutGridHighlightLoopCounter = 0;
+        lastPayoutGrids = new ArrayList<>();
+        lastPayouts = new BigInteger[winningGrids.size()];
+        currentPayoutLaneLabel.setVisible(false);
+        resetLabelBorders();
 
         machine.slotLevelComponent.addXp(spinAmount);
         for (int i = 0; i < currentSlotGrid.length; i++) {
@@ -456,16 +466,26 @@ public class SlotGrid {
                 additionalX2SymbolChance -= 5;
             }
         }
-        repaintGridForWinLineDebug();
         BigInteger win = calculateTotalWin(spinAmount);
-        if (checkForFreeSpins()) {
+        boolean freeSpinsAwarded = checkForFreeSpins();
+        if (freeSpinsAwarded) {
             freeSpinsActivated = true;
             freeSpinsLabel.setVisible(true);
         }
         freeSpinsLabel.setText(String.valueOf(freeSpinsLeft));
-        scheduleWinHighlightReset();
+        if (showWinningPaylines && win.signum() > 0) {
+            scheduleWinHighlight();
+        }
         machinePanel.repaint();
         return win;
+    }
+
+    private void resetLabelBorders(){
+        labels.forEach(label -> {
+            if (label.getBorder() != normalBorder) {
+                label.setBorder(normalBorder);
+            }
+        });
     }
 
     private BigInteger calculateTotalWin(BigInteger spinAmount) {
@@ -475,6 +495,7 @@ public class SlotGrid {
         }
         if (totalWin.signum() > 0) {
             PlayerManager.increaseCoins(totalWin);
+
         }
         return totalWin;
     }
@@ -497,8 +518,9 @@ public class SlotGrid {
      * payout table. The line stake is multiplied by that table value, then by
      * two for each counted {@code x2} symbol and by the machine pet's multiplier.
      * {@code calculateTotalWin} adds the combined payout to the player's balance.
-     * When {@code stopForWinLines} is enabled, cells in the line are highlighted
-     * until a Swing timer restores their borders.</p>
+     * When {@code showWinningPaylines} is enabled, matched cells use the win
+     * border and the remaining cells in the same line use the next-payout
+     * border. A Swing timer later restores their borders.</p>
      *
      * @param winningGrid row-major mask identifying the cells in this payline
      * @param spinAmount stake used to calculate this payline's payout
@@ -521,15 +543,9 @@ public class SlotGrid {
                     continue;
                 }
 
-                if (stopForWinLines) {
-                    labels.get(cellIndex).setBorder(slotsLeftBorder);
-                }
                 if (symbolLockedIn) {
                     if (currentSlotGrid[cellIndex] == winningSymbol) {
                         matchingSymbols++;
-                        if (stopForWinLines) {
-                            labels.get(cellIndex).setBorder(winBorder);
-                        }
                     } else if (currentSlotGrid[cellIndex] == icons.size() - 1) {
                         // x2 acts as a wildcard only after a target symbol was selected.
                         multiplierSymbols++;
@@ -547,9 +563,6 @@ public class SlotGrid {
                     winningSymbol = currentSlotGrid[cellIndex];
                     matchingSymbols++;
                     symbolLockedIn = true;
-                    if (stopForWinLines) {
-                        labels.get(cellIndex).setBorder(winBorder);
-                    }
                 }
 
                 break;
@@ -569,37 +582,71 @@ public class SlotGrid {
                     lineWin = spinAmount.multiply(BigInteger.valueOf(currentWin5Symbol[winningSymbol]));
                     break;
             }
+
             // Apply x2 and pet multipliers to the table-based line payout.
             if (multiplierSymbols != 0) {
                 lineWin = lineWin.multiply(BigInteger.valueOf(multiplierSymbols * 2L));
             }
+            addPayoutGrid(matchingSymbols,winningGrid, lineWin);
             lineWin = lineWin.multiply(BigInteger.valueOf(machine.pet.getMulti()));
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.fine("Winning line: symbols=" + matchingSymbols + ", symbol=" + winningSymbol
+            if (lineWin.signum() > 0) {
+                LOGGER.info("Winning line: symbols=" + matchingSymbols + ", symbol=" + winningSymbol
                         + ", win=" + lineWin + ", multiplier=" + lineWin.divide(spinAmount));
             }
-            repaintGridForWinLineDebug();
-
         }
 
         return lineWin;
     }
 
-    private void repaintGridForWinLineDebug() {
-        if (stopForWinLines) {
-            labels.forEach(label -> label.paintImmediately(label.getVisibleRect()));
-        }
+    /** Restores grid borders after the temporary win-line or free-spin highlight. */
+    private void scheduleWinHighlight() {
+        winHighlightTimer = new Timer(1500, event -> {
+            resetLabelBorders();
+            int index = payoutGridHighlightLoopCounter % lastPayoutGrids.size();
+            int[] winGrid = lastPayoutGrids.get(index);
+            BigInteger winAmount = lastPayouts[index];
+            for (int i = 0; i < winGrid.length; i++) {
+                if (winGrid[i] == 1) {
+                    labels.get(i).setBorder(winningLineBorder);
+                } else if (winGrid[i] == 2) {
+                    labels.get(i).setBorder(nextPayoutBorder);
+                }
+            }
+            machinePanel.repaint();
+            if(lastPayoutGrids.size()> 1){
+                payoutGridHighlightLoopCounter++;
+            }
+            currentPayoutLaneLabel.setVisible(true);
+            currentPayoutLaneLabel.setText(winAmount.toString());
+        });
+        winHighlightTimer.setRepeats(lastPayoutGrids.size() > 1);
+        winHighlightTimer.start();
     }
 
-    private void scheduleWinHighlightReset() {
-        if (stopForWinLines) {
-            winHighlightResetTimer = new Timer(500, event -> {
-                labels.forEach(label -> label.setBorder(normalBorder));
-                machinePanel.repaint();
-            });
-            winHighlightResetTimer.setRepeats(false);
-            winHighlightResetTimer.start();
+    /** Adds the winning grid to the payout grids to later display them and the corresponding win one after another*/
+    private void addPayoutGrid(int matchingSymbols, int[] winningGrid, BigInteger winAmount) {
+        int[] payoutGrid = winningGrid.clone();
+        int matchesRemaining = matchingSymbols;
+        int payoutIndex = lastPayoutGrids.size();
+
+        for (int column = 0; column < columnCount; column++) {
+            for (int row = 0; row < 3; row++) {
+                int cellIndex = row * columnCount + column;
+                if (winningGrid[cellIndex] != 1) {
+                    continue;
+                }
+
+                if (matchesRemaining > 0) {
+                    matchesRemaining--;
+                } else {
+                    payoutGrid[cellIndex] = 2;
+                }
+                break; // This payline has one cell per column.
+            }
         }
+
+        lastPayouts[payoutIndex] = winAmount;
+        lastPayoutGrids.add(payoutGrid);
     }
 
     /** Adds free spins when at least three thunder symbols appear in the grid. */
@@ -609,7 +656,13 @@ public class SlotGrid {
         for (int i = 0; i < currentSlotGrid.length; i++) {
             if (currentSlotGrid[i] == 0) {
                 freeSpinSymbolAmount++;
-                labels.get(i).setBorder(freeSpinBorder);
+            }
+        }
+        if (freeSpinSymbolAmount >= 3) {
+            for (int i = 0; i < currentSlotGrid.length; i++) {
+                if (currentSlotGrid[i] == 0) {
+                    labels.get(i).setBorder(freeSpinBorder);
+                }
             }
         }
         if (freeSpinSymbolAmount == 3) {

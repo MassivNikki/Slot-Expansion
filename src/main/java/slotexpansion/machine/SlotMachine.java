@@ -107,7 +107,7 @@ public class SlotMachine {
         spinBtt.setBounds(machinePanel.getWidth() / 2 - 50, 70, 100, 50);
         petImageLabel.setBounds(30, 75, 80, 40);
         changeAutoSpinCheckbox.setBounds(spinBtt.getX() + spinBtt.getWidth() + 10, 70, 50, 20);
-        winLabel.setBounds(100, 20, 100, 20);
+        winLabel.setBounds(170, 145, 100, 30);
         JComponent comp = allComponents.get("spinCoolDownUpgradeBtt");
         if (comp != null) {
             comp.setBounds(spinBtt.getX(), spinBtt.getY() + spinBtt.getHeight() + 5, 40, 20);
@@ -267,7 +267,8 @@ public class SlotMachine {
         });
         machinePanel.add(spinAmountLabel);
 
-        winLabel.setForeground(Color.CYAN);
+        winLabel.setForeground(Color.GREEN);
+        winLabel.setFont(new Font("Arial", Font.BOLD, 20));
         machinePanel.add(winLabel);
     }
 
