@@ -744,7 +744,9 @@ public class SlotGrid {
         int previousColumnCount = this.columnCount;
         for (int i = 0; i < columnCount - previousColumnCount; i++) {
             upgradeGrid();
+            machine.moveUpgradeGridButton();
         }
+
     }
 
     public List<int[]> getWinningGrids() {

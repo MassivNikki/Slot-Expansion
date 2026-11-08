@@ -52,6 +52,7 @@ public class SlotMachine {
     private final CasinoButton minStakeBtt = new CasinoButton("min");
     private CasinoUpgradeButton increaseMaxSpinAmountBtt;
     private CasinoUpgradeButton increaseMinSpinAmountBtt;
+    protected CasinoUpgradeButton addColumnUpgradeButton;
     private final Border normalBorder = BorderFactory.createLineBorder(Color.black);
 
     // Manual spins use a one-shot timer; auto-spin uses a repeating timer.
@@ -140,7 +141,7 @@ public class SlotMachine {
     }
 
     private void setupGridSizeUpgrade() {
-        CasinoUpgradeButton addColumnUpgradeButton =
+        addColumnUpgradeButton =
                 new CasinoUpgradeButton(columnUpgradePrice, slotTier, "+1 Column",
                         machinePanel, PriceLabelPosition.UNDER);
         addColumnUpgradeButton.setBounds(75 + 50 * slotGrid.getColumnCount(), 170, 50, 150);
@@ -149,17 +150,20 @@ public class SlotMachine {
                 upgradeArea.upgradeManager.upgradeGrid();
                 pet.setTier(-1);
                 setPetImage(pet.getIcon());
-                machinePanel.repaint();
-                if (slotGrid.getColumnCount() == 5) {
-                    addColumnUpgradeButton.removeFromMachinePanel(machinePanel);
-                    machinePanel.repaint();
-                } else {
-                    addColumnUpgradeButton.setBounds(75 + 50 * slotGrid.getColumnCount(), 170, 50, 150);
-                }
+                moveUpgradeGridButton();
             }
 
         });
         machinePanel.add(addColumnUpgradeButton);
+    }
+
+    protected void moveUpgradeGridButton(){
+        if (slotGrid.getColumnCount() == 5) {
+            addColumnUpgradeButton.removeFromMachinePanel(machinePanel);
+        } else {
+            addColumnUpgradeButton.setBounds(75 + 50 * slotGrid.getColumnCount(), 170, 50, 150);
+        }
+        machinePanel.repaint();
     }
 
     private void setupAutoSpinControls() {

@@ -23,8 +23,13 @@ import java.util.Map;
  */
 public class Application {
     private static final Map<IconKey, ImageIcon> ICON_CACHE = new HashMap<>();
+    private static final String SAVE_DATA_HEADER =
+            "# balance,slotLevel,slotXp,additionalSevenSymbolChance,additionalTier4SymbolChance,"
+                    + "additionalTier3SymbolChance,additionalTier2SymbolChance,tier1SymbolChance,"
+                    + "additionalX2SymbolChance,addedPaylines,petTier,columnCount,autoCooldown,"
+                    + "manualCooldown,autoSpinUnlocked,minStakeUpgrades,maxStakeUpgrades";
 
-    private final boolean resetData = true;
+    private final boolean skipSavingData = true;
     private final ArrayList<JPanel> machinePanels = new ArrayList<>();
     private final String saveDataFilePath = "SaveData";
     private final ArrayList<String> savedMachineRecords = new ArrayList<>();
@@ -80,7 +85,10 @@ public class Application {
         try (BufferedReader reader = new BufferedReader(new FileReader(saveDataFilePath))) {
             String record;
             while ((record = reader.readLine()) != null) {
-                savedMachineRecords.add(record);
+                String trimmedRecord = record.trim();
+                if (!trimmedRecord.isEmpty() && !trimmedRecord.startsWith("#")) {
+                    savedMachineRecords.add(trimmedRecord);
+                }
             }
             machineCount = savedMachineRecords.size();
         } catch (IOException e) {
@@ -132,14 +140,15 @@ public class Application {
      */
     private void saveProgress() {
         try (PrintWriter writer = new PrintWriter(new FileWriter(saveDataFilePath))) {
-            if (resetData) {
-                writer.print("12345678910111213,1,0,0,0,0,0,53,0,0,-1,3,1000,500,false,0,0");
-            } else {
-                StringBuilder sb = new StringBuilder();
+            writer.println(SAVE_DATA_HEADER);
+            if (!skipSavingData) {
                 for (SlotMachine machine : machines) {
-                    appendMachineState(sb, machine);
-                    writer.println(sb);
+                    StringBuilder saveRecord = new StringBuilder();
+                    appendMachineState(saveRecord, machine);
+                    writer.println(saveRecord);
                 }
+            }else{
+                writer.print("12345678910111213,1,0,0,0,0,0,53,0,5,-1,5,1000,500,false,0,0");
             }
 
         } catch (IOException e) {
