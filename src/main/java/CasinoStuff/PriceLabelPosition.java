@@ -1,5 +1,6 @@
 package CasinoStuff;
 
+/** Positions an upgrade button's price label relative to the button. */
 public class PriceLabelPosition {
     public static final int ABOVE = -1;
     public static final int RIGHT = 0;

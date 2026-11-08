@@ -5,6 +5,10 @@ import java.awt.*;
 import java.math.BigInteger;
 import java.util.function.Consumer;
 
+/**
+ * A purchase button that checks the balance, charges its price, and increases
+ * its next price before applying the supplied upgrade action.
+ */
 public class CasinoUpgradeButton extends CasinoButton {
     int position;
     private PriceLabel priceLabel = new PriceLabel();
@@ -77,13 +81,14 @@ public class CasinoUpgradeButton extends CasinoButton {
         frame.remove(priceLabel);
         frame.remove(this);
     }
+    /** Adds a purchase listener around an upgrade-specific action. */
     public void addCustomActionListener(Consumer<CasinoUpgradeButton> customAction) {
         this.addActionListener(e -> {
-            // Bedingung prüfen
+            // Check affordability before changing the balance or upgrade state.
             if (enoughCoins()) {
                 PlayerManager.decreaseCoins(getPrice());
                 increasePrice();
-                // Spezifischen Code ausführen
+                // Run the behavior supplied for this particular upgrade.
                 customAction.accept(CasinoUpgradeButton.this);
             }else{
                 notEnoughCoins();
@@ -104,11 +109,13 @@ public class CasinoUpgradeButton extends CasinoButton {
         super("test");
     }
 
+    /** Hides this control and its price when no further purchases are available. */
     public void disableUpgradable() {
         priceLabel.setVisible(false);
         setVisible(false);
     }
 
+    /** Restores visibility when this upgrade still has a nonzero price. */
     public void enableUpgradable() {
         if (priceLabel.getPrice().compareTo(BigInteger.valueOf(0)) > 0) {
             priceLabel.setVisible(true);

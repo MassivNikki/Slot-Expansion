@@ -9,25 +9,30 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 
+/**
+ * Displays one machine's level, current experience, and progress to the next level.
+ */
 public class SlotLevelComponent extends JComponent {
     private final JLabel slotLevelLabel = new JLabel();
-    private final JProgressBar progressBarLabel = new JProgressBar();
-    private final PriceLabel slotXpLabel = new PriceLabel();
-    private final PriceLabel xpForLevelUpLabel = new PriceLabel();
-    private JPanel machinePanel;
+    private final JProgressBar progressBar = new JProgressBar();
+    private final PriceLabel currentXpLabel = new PriceLabel();
+    private final PriceLabel nextLevelXpLabel = new PriceLabel();
+    private final JPanel machinePanel;
     private int progressBarWidth;
     protected int slotLevel = 0;
     protected BigInteger slotXp = BigInteger.valueOf(0);
     private BigInteger amountForLevelUp;
     private boolean levelUpCheckActive = false;
-    private SlotMachine machine;
+    private final SlotMachine machine;
+
     public SlotLevelComponent(JPanel machinePanel, SlotMachine machine) {
         this.machinePanel = machinePanel;
         this.machine = machine;
         progressBarWidth = machinePanel.getWidth()-10;
-        setupXpLabels();
+        buildProgressDisplay();
     }
-    private void setupXpLabels() {
+
+    private void buildProgressDisplay() {
         setSlotLevel(1);
         setSlotXp(BigInteger.valueOf(0));
         slotLevelLabel.setForeground(Color.GREEN);
@@ -35,51 +40,55 @@ public class SlotLevelComponent extends JComponent {
         slotLevelLabel.setFont(new Font("Arial", Font.BOLD, 15));
         machinePanel.add(slotLevelLabel);
 
-        progressBarLabel.setUI(new CustomProgressBarUI());
-        progressBarLabel.setForeground(Color.GREEN);
-        progressBarLabel.setBounds(machinePanel.getWidth()/2-progressBarWidth/2, 16, progressBarWidth, 10);
-        progressBarLabel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-        progressBarLabel.setBackground(null);
-        machinePanel.add(progressBarLabel);
+        progressBar.setUI(new CustomProgressBarUI());
+        progressBar.setForeground(Color.GREEN);
+        progressBar.setBounds(machinePanel.getWidth()/2-progressBarWidth/2, 16, progressBarWidth, 10);
+        progressBar.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+        progressBar.setBackground(null);
+        machinePanel.add(progressBar);
 
-        xpForLevelUpLabel.setForeground(Color.white);
-        xpForLevelUpLabel.setBounds(progressBarLabel.getX()+progressBarWidth-100, 25, 100, 15);
-        xpForLevelUpLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        machinePanel.add(xpForLevelUpLabel);
+        nextLevelXpLabel.setForeground(Color.white);
+        nextLevelXpLabel.setBounds(progressBar.getX()+progressBarWidth-100, 25, 100, 15);
+        nextLevelXpLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        machinePanel.add(nextLevelXpLabel);
 
-        slotXpLabel.updateFormat(slotXp);
-        slotXpLabel.setForeground(Color.white);
-        slotXpLabel.setBounds(progressBarLabel.getX(), 25, 100, 15);
-        slotXpLabel.setHorizontalAlignment(SwingConstants.LEFT);
-        machinePanel.add(slotXpLabel);
+        currentXpLabel.updateFormat(slotXp);
+        currentXpLabel.setForeground(Color.white);
+        currentXpLabel.setBounds(progressBar.getX(), 25, 100, 15);
+        currentXpLabel.setHorizontalAlignment(SwingConstants.LEFT);
+        machinePanel.add(currentXpLabel);
 
         calculateNextLevelXpAmount();
     }
 
-    public void setSlotLevel(int givenPlayerLevel) {
-        slotLevel = givenPlayerLevel;
+    /** Sets the displayed level and recalculates its next-level requirement. */
+    public void setSlotLevel(int level) {
+        slotLevel = level;
         machine.slotLevel = slotLevel;
-        slotLevelLabel.setText(String.valueOf(givenPlayerLevel));
+        slotLevelLabel.setText(String.valueOf(level));
         calculateNextLevelXpAmount();
     }
 
-    public void setSlotXp(BigInteger givenPlayerXp) {
-        slotXp = givenPlayerXp;
-        slotXpLabel.updateFormat(slotXp);
+    /** Replaces the machine's experience and checks whether it has leveled up. */
+    public void setSlotXp(BigInteger xp) {
+        slotXp = xp;
+        currentXpLabel.updateFormat(slotXp);
         if (!levelUpCheckActive) {
             checkForLevelUp();
         }
     }
+
+    /** Adds spin experience and processes any levels earned by that amount. */
     public void addXp(BigInteger amount){
         slotXp = slotXp.add(amount);
-        slotXpLabel.updateFormat(slotXp);
+        currentXpLabel.updateFormat(slotXp);
         if (!levelUpCheckActive) {
             checkForLevelUp();
         }
     }
 
     protected void checkForLevelUp() {
-        //solange die xp des spieler die levelup grenze überschreitet wird ein levelup durchgeführt
+        // Continue leveling while the remaining experience reaches each threshold.
         while (amountForLevelUp.compareTo(slotXp) <= 0) {
             levelUpCheckActive = true;
             slotLevel++;
@@ -95,22 +104,16 @@ public class SlotLevelComponent extends JComponent {
 
 
     protected void calculateNextLevelXpAmount() {
-        //berechnet die anzahl die zum nächsten level up zu erreichen ist
+        // The threshold is the current level to the seventh power, divided by three, plus 200.
         amountForLevelUp = BigInteger.valueOf(((long) (Math.pow(slotLevel, 7) / 3)) + 200);
-        xpForLevelUpLabel.updateFormat(amountForLevelUp);
+        nextLevelXpLabel.updateFormat(amountForLevelUp);
     }
 
     protected void calculateProgressBar() {
-        //es wird die Anzeige aktualisiert, damit man weis wie weit die xp sind
-        StringBuilder builder = new StringBuilder();
-        BigDecimal tempXp = new BigDecimal(slotXp);
-        BigDecimal tempMaxXp = new BigDecimal(amountForLevelUp);
-        BigDecimal progress = tempXp.divide(tempMaxXp, 10, RoundingMode.FLOOR).multiply(BigDecimal.valueOf(100));
-        progressBarLabel.setValue(progress.intValue());
-        BigDecimal bars = progress.multiply(BigDecimal.valueOf(progressBarWidth / 10));
-        for (int i = 0; bars.compareTo(BigDecimal.valueOf(i)) > 0; i++) {
-            builder.append("█");
-        }
+        BigDecimal currentXp = new BigDecimal(slotXp);
+        BigDecimal xpThreshold = new BigDecimal(amountForLevelUp);
+        BigDecimal progressPercent = currentXp.divide(xpThreshold, 10, RoundingMode.FLOOR).multiply(BigDecimal.valueOf(100));
+        progressBar.setValue(progressPercent.intValue());
     }
 
 }

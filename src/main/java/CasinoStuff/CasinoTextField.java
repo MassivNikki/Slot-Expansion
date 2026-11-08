@@ -5,6 +5,7 @@ import java.awt.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
+/** A stake text field that stores and displays its value as an integer amount. */
 public class CasinoTextField extends JTextField {
     public BigInteger spinAmount;
 
@@ -23,13 +24,12 @@ public class CasinoTextField extends JTextField {
         String value = getText();
         BigInteger amount;
         if (value.contains("e")) {
-            // Den String in zwei Teile trennen: Basis und Exponent
+            // Split scientific notation into its base and exponent.
             String[] parts = value.split("e");
             BigDecimal base = new BigDecimal(parts[0]);
             int exponent = Integer.parseInt(parts[1]);
-            // Den Wert berechnen: base * 10^exponent
+            // Convert the formatted value back to an integer amount.
             amount = base.multiply(BigDecimal.TEN.pow(exponent)).toBigInteger();
-            // Ausgabe zur Bestätigung
             System.out.println(amount);
         } else {
             amount = new BigInteger(getText());

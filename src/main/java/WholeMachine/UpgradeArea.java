@@ -7,9 +7,13 @@ import java.awt.*;
 import java.math.BigInteger;
 import java.util.ArrayList;
 
+/**
+ * Displays the purchasable upgrades for a single slot machine.
+ */
 public class UpgradeArea extends JFrame {
 
     protected final ArrayList<CasinoUpgradeButton> upgradeIncreaseButtons = new ArrayList<>();
+    // Baseline probabilities in the same order as the symbol upgrade controls.
     protected final int[] symbolOrgChances = {3, 6, 12, 20, 53, 2};
     protected BigInteger sevenSymbolPrice = BigInteger.valueOf(200000);
     protected BigInteger tier4SymbolPrice = BigInteger.valueOf(100000);
@@ -40,6 +44,7 @@ public class UpgradeArea extends JFrame {
         increaseUpgradesPanel.setBackground(Color.darkGray);
         setTitle("Upgrades for machine " + machine.slotTier);
     }
+
     private void addTabs(){
         tabs.addTab("Increase",increaseUpgradesPanel);
         tabs.addTab("Unlock",unlockPanel);
@@ -47,6 +52,7 @@ public class UpgradeArea extends JFrame {
         getContentPane().add(tabs);
     }
 
+    /** Rebuilds the upgrade controls from the machine's currently loaded state. */
     public void initiate() {
         for (int i = 0; i < addedGrids; i++) {
             slotGrid.addNewWinningGrid(i);
@@ -95,6 +101,7 @@ public class UpgradeArea extends JFrame {
                 btt.addCustomActionListener(e -> {
                     upgradeManager.increaseAdditionalSevenSymbolChance();
                 });
+                // Both symbol identifiers use the seven-symbol chance upgrade.
             case 7:
                 btt.addCustomActionListener(e -> {
                     upgradeManager.increaseAdditionalSevenSymbolChance();

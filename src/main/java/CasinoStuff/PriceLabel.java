@@ -6,6 +6,7 @@ import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 
+/** Displays coin amounts and upgrade prices, abbreviating large values. */
 public class PriceLabel extends JLabel {
     private boolean freeUpgrades = false;
     private static DecimalFormat scientificFormat = new DecimalFormat("0.##E0");
@@ -25,6 +26,7 @@ public class PriceLabel extends JLabel {
         setHorizontalAlignment(SwingConstants.CENTER);
         setForeground(Color.yellow);
     }
+    /** Returns the shared scientific-notation formatter used for large amounts. */
     public static DecimalFormat getFormat(){
         DecimalFormatSymbols dfs = scientificFormat.getDecimalFormatSymbols();
         dfs.setExponentSeparator("e");
@@ -38,7 +40,7 @@ public class PriceLabel extends JLabel {
         }else super.setText(String.valueOf(amount));
     }
 
-    //es sollte noch die länge des feldes anpassen -> geht ja mit setbounds x,y textwidth
+    /** Sets the base price, applying the machine-tier multiplier on first assignment. */
     public void setPrice(BigInteger price, int slotTier){
         if(initialPriceSet){
             this.price = price;
@@ -60,6 +62,7 @@ public class PriceLabel extends JLabel {
         }else super.setText(String.valueOf(coins));
     }
 
+    /** Multiplies the current price by the existing per-purchase factor. */
     public BigInteger increasePrice() {
         price = price.multiply(BigInteger.valueOf(20));
         setPrice(price,tierOfSlot);

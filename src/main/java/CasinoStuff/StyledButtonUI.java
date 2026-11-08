@@ -5,6 +5,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicButtonUI;
 import java.awt.*;
 
+/** Paints buttons with the game's rounded raised/pressed appearance. */
 class StyledButtonUI extends BasicButtonUI {
 
     @Override

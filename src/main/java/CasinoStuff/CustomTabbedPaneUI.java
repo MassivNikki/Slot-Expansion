@@ -3,6 +3,7 @@ import javax.swing.*;
 import javax.swing.plaf.basic.BasicTabbedPaneUI;
 import java.awt.*;
 
+/** Draws the upgrade window's tabs with the game's rounded color treatment. */
 public class CustomTabbedPaneUI extends BasicTabbedPaneUI {
 
     @Override
@@ -16,7 +17,7 @@ public class CustomTabbedPaneUI extends BasicTabbedPaneUI {
         Graphics2D g2d = (Graphics2D) g.create();
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        int arc = 15; // Radius für die Abrundung
+        int arc = 15; // Corner radius for the rounded tab shape.
         if (isSelected) {
             g2d.setColor(new Color(0x2dce98));
         } else {
@@ -28,7 +29,7 @@ public class CustomTabbedPaneUI extends BasicTabbedPaneUI {
 
     @Override
     protected void paintTabBorder(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h, boolean isSelected) {
-        // Keine Umrandung für die Tabs
+        // The rounded backgrounds provide the tab separation.
     }
 
     @Override
@@ -45,6 +46,6 @@ public class CustomTabbedPaneUI extends BasicTabbedPaneUI {
 
     @Override
     protected void paintFocusIndicator(Graphics g, int tabPlacement, Rectangle[] rects, int tabIndex, Rectangle iconRect, Rectangle textRect, boolean isSelected) {
-        // Keine Fokus-Indikator
+        // The custom tab design does not draw a focus indicator.
     }
 }

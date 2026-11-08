@@ -3,6 +3,7 @@ package CasinoStuff;
 import javax.swing.*;
 import java.awt.*;
 
+/** Main, fixed-size game window, centered on the current display. */
 public class MainFrame extends JFrame {
     public MainFrame() {
         super();
@@ -25,15 +26,15 @@ public class MainFrame extends JFrame {
         int screenWidth = screenSize.width;
         int screenHeight = screenSize.height;
 
-        // Framegröße holen
+        // Read the current display and window dimensions.
         int frameWidth = getSize().width;
         int frameHeight = getSize().height;
 
-        // Berechnung der Position, um das Fenster mittig zu setzen
+        // Calculate the top-left point that centers the window.
         int x = (screenWidth - frameWidth) / 2;
         int y = (screenHeight - frameHeight) / 2;
 
-        // Position des JFrame setzen
+        // Apply the centered position.
         setLocation(x, y);
     }
 }
