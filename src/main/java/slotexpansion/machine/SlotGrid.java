@@ -11,15 +11,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Owns one machine's symbols, paylines, probability upgrades, and spin outcomes.
  *
- * <p>Grid arrays and paylines use row-major positions, with {@code rowAmount}
+ * <p>Grid arrays and paylines use row-major positions, with {@code columnCount}
  * consecutive cells in each displayed row.</p>
  */
 public class SlotGrid {
+    private static final Logger LOGGER = Logger.getLogger(SlotGrid.class.getName());
+
     private final boolean stopForWinLines = false;
 
     private final int[] tier1Win3Symbol = {0, 1, 1, 1, 3, 3, 3, 4, 4, 6, 6, 10};
@@ -57,7 +60,7 @@ public class SlotGrid {
     private final int[] tier2SlotGrid = new int[12];
     private final int[] tier1SlotGrid = new int[9];
     private int[] currentSlotGrid;
-    private int rowAmount = 3;
+    private int columnCount = 3;
     private final List<JLabel> labels = new ArrayList<>();
     private final ArrayList<ImageIcon> icons = new ArrayList<>();
     private final Border normalBorder = BorderFactory.createLineBorder(Color.black);
@@ -66,6 +69,8 @@ public class SlotGrid {
     private final Border freeSpinBorder = BorderFactory.createLineBorder(Color.BLUE);
     private List<int[]> winningGrids;
     private List<int[]> currentAdditionalWinningGrid;
+    private final Random rand = new Random();
+    private Timer winHighlightResetTimer;
 
 
     public SlotGrid(JPanel machinePanel, SlotMachine machine) {
@@ -332,7 +337,7 @@ public class SlotGrid {
 
     /** Advances the machine to its next grid size and resets symbol odds. */
     public void upgradeGrid() {
-        if (rowAmount == 3) {
+        if (columnCount == 3) {
             currentSlotGrid = tier2SlotGrid;
             currentWin3Symbol = tier2Win3Symbol;
             currentWin4Symbol = tier2Win4Symbol;
@@ -361,7 +366,7 @@ public class SlotGrid {
         additionalX2SymbolChance = 0;
     }
 
-    private void generateSlotGridWithImages(int laneLength) {
+    private void generateSlotGridWithImages(int columnCount) {
         int xoffset = 0;
         int yoffset = 0;
         labels.forEach(machinePanel::remove);
@@ -371,7 +376,7 @@ public class SlotGrid {
             // Keep each new cell populated with a valid icon before its first spin.
             currentSlotGrid[i] = 0;
             label.setIcon(icons.getFirst());
-            if (i % laneLength == 0 && i != 0) {
+            if (i % columnCount == 0 && i != 0) {
                 yoffset += 50;
                 xoffset = 0;
             }
@@ -382,26 +387,14 @@ public class SlotGrid {
             labels.add(label);
             xoffset += 50;
         }
-        rowAmount = laneLength;
+        this.columnCount = columnCount;
         labels.forEach(machinePanel::add);
         labels.getFirst().setIcon(icons.getFirst());
     }
 
-    private void showGoodGrids(int[] grid) {
-        // Diagnostic helper for printing a payline in row-major order.
-        if (grid != null) {
-            for (int i = 1; i < currentSlotGrid.length + 1; i++) {
-                System.out.print("|" + grid[i - 1]);
-                if (i % rowAmount == 0) {
-                    System.out.println("|");
-                }
-            }
-        }
-    }
-
     private int calculateSlotSymbol(int currentSpot) {
         // The cumulative symbol bands shift as chance upgrades are purchased.
-        int chance = new Random().nextInt(0, 100);
+        int chance = rand.nextInt(0, 100);
         if (!isX2Symbol(currentSpot, chance)) {
             if (chance < 5 + additionalX2SymbolChance + additionalSevenSymbolChance && sevenSymbolsUnlocked) {
                 return icons.size() - 2;
@@ -419,11 +412,11 @@ public class SlotGrid {
 
     private boolean isX2Symbol(int currentSpot, int chance) {
         // Multiplier symbols are excluded from the first and last column.
-        if (rowAmount == 3) {
+        if (columnCount == 3) {
             return chance < 2 + additionalX2SymbolChance
                     && currentSpot != 0 && currentSpot != 3 && currentSpot != 6
                     && currentSpot != 2 && currentSpot != 5 && currentSpot != 8;
-        } else if (rowAmount == 4) {
+        } else if (columnCount == 4) {
             return chance < 2 + additionalX2SymbolChance
                     && currentSpot != 0 && currentSpot != 4 && currentSpot != 8
                     && currentSpot != 3 && currentSpot != 7 && currentSpot != 11;
@@ -435,6 +428,15 @@ public class SlotGrid {
 
     /** Generates one outcome and settles its stake, winnings, and free spins. */
     public BigInteger spinSlotMachine(BigInteger spinAmount) {
+        if (winHighlightResetTimer != null) {
+            winHighlightResetTimer.stop();
+        }
+        labels.forEach(label -> {
+            if (label.getBorder() != normalBorder) {
+                label.setBorder(normalBorder);
+            }
+        });
+
         machine.slotLevelComponent.addXp(spinAmount);
         for (int i = 0; i < currentSlotGrid.length; i++) {
             int symbol = calculateSlotSymbol(i);
@@ -454,13 +456,15 @@ public class SlotGrid {
                 additionalX2SymbolChance -= 5;
             }
         }
-        labels.forEach(label -> label.paintImmediately(label.getVisibleRect()));
+        repaintGridForWinLineDebug();
         BigInteger win = calculateTotalWin(spinAmount);
         if (checkForFreeSpins()) {
             freeSpinsActivated = true;
             freeSpinsLabel.setVisible(true);
         }
         freeSpinsLabel.setText(String.valueOf(freeSpinsLeft));
+        scheduleWinHighlightReset();
+        machinePanel.repaint();
         return win;
     }
 
@@ -469,16 +473,19 @@ public class SlotGrid {
         for (int[] winningGrid : winningGrids) {
             totalWin = totalWin.add(calculateWinForPayline(winningGrid, spinAmount));
         }
+        if (totalWin.signum() > 0) {
+            PlayerManager.increaseCoins(totalWin);
+        }
         return totalWin;
     }
 
     /**
-     * Evaluates one payline from left to right, credits any payout, and returns it.
+     * Evaluates one payline from left to right and returns its payout.
      *
      * <p>{@code winningGrid} is a row-major mask with a {@code 1} at each cell
      * belonging to the payline. The scan starts in the leftmost column. In each
-     * column, it finds that column's payline cell, then advances the candidate
-     * cell indexes by one so they point at the next column.</p>
+     * column, it checks the three row positions and computes each cell index
+     * as {@code row * columnCount + column}.</p>
      *
      * <p>The first encountered symbol becomes the target symbol. Matching target
      * symbols and, after the target is selected, {@code x2} symbols extend the
@@ -489,13 +496,13 @@ public class SlotGrid {
      * <p>Prefixes of three, four, or five symbols use the corresponding current
      * payout table. The line stake is multiplied by that table value, then by
      * two for each counted {@code x2} symbol and by the machine pet's multiplier.
-     * A winning amount is added to the player's coin balance. When
-     * {@code stopForWinLines} is enabled, cells in the line are briefly highlighted
-     * before their borders are restored.</p>
+     * {@code calculateTotalWin} adds the combined payout to the player's balance.
+     * When {@code stopForWinLines} is enabled, cells in the line are highlighted
+     * until a Swing timer restores their borders.</p>
      *
      * @param winningGrid row-major mask identifying the cells in this payline
      * @param spinAmount stake used to calculate this payline's payout
-     * @return the payout credited for this line, or zero when it does not win
+     * @return the payout for this line, or zero when it does not win
      */
     private BigInteger calculateWinForPayline(int[] winningGrid, BigInteger spinAmount) {
         int winningSymbol = -1;
@@ -503,12 +510,13 @@ public class SlotGrid {
         int matchingSymbols = 0;
         int multiplierSymbols = 0;
         BigInteger lineWin = BigInteger.ZERO;
-        // These are the row-major indexes in the leftmost column.
-        List<Integer> currentColumn = new ArrayList<>(Arrays.asList(0, rowAmount, rowAmount * 2));
+        // Check the three row-major cell positions in each column.
+        boolean lineCanContinue = true;
 
         // Each iteration moves one column to the right along the payline.
-        for (int column = 0; column < rowAmount; column++) {
-            for (Integer cellIndex : currentColumn) {
+        for (int column = 0; column < columnCount && lineCanContinue; column++) {
+            for (int row = 0; row < 3; row++) {
+                int cellIndex = row * columnCount + column;
                 if (winningGrid[cellIndex] != 1) {
                     continue;
                 }
@@ -529,7 +537,7 @@ public class SlotGrid {
                     } else if (matchingSymbols < 3) {
                         // Fewer than three consecutive matches cannot win; skip the rest of this line.
                         matchingSymbols = 0;
-                        column = 6;
+                        lineCanContinue = false;
                     } else {
                         // Keep the winning prefix, but do not count symbols after its first mismatch.
                         symbolLockedIn = false;
@@ -544,7 +552,6 @@ public class SlotGrid {
                     }
                 }
 
-                currentColumn.replaceAll(index -> index + 1);
                 break;
             }
         }
@@ -567,22 +574,32 @@ public class SlotGrid {
                 lineWin = lineWin.multiply(BigInteger.valueOf(multiplierSymbols * 2L));
             }
             lineWin = lineWin.multiply(BigInteger.valueOf(machine.pet.getMulti()));
-            PlayerManager.increaseCoins(lineWin);
-            System.out.println("-----Winning-----\nCorrect Symbols: " + matchingSymbols + "(" + winningSymbol + ")\nWin: " + lineWin + "\nMultiplier: " + lineWin.divide(spinAmount));
-            labels.forEach(label -> label.paintImmediately(label.getVisibleRect()));
-            if (stopForWinLines) {
-                try {
-                    TimeUnit.MILLISECONDS.sleep(500);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine("Winning line: symbols=" + matchingSymbols + ", symbol=" + winningSymbol
+                        + ", win=" + lineWin + ", multiplier=" + lineWin.divide(spinAmount));
             }
+            repaintGridForWinLineDebug();
+
         }
 
-        // Clear any optional payline highlighting before evaluating the next line.
-        labels.forEach(label -> label.setBorder(normalBorder));
-        labels.forEach(label -> label.paintImmediately(label.getVisibleRect()));
         return lineWin;
+    }
+
+    private void repaintGridForWinLineDebug() {
+        if (stopForWinLines) {
+            labels.forEach(label -> label.paintImmediately(label.getVisibleRect()));
+        }
+    }
+
+    private void scheduleWinHighlightReset() {
+        if (stopForWinLines) {
+            winHighlightResetTimer = new Timer(500, event -> {
+                labels.forEach(label -> label.setBorder(normalBorder));
+                machinePanel.repaint();
+            });
+            winHighlightResetTimer.setRepeats(false);
+            winHighlightResetTimer.start();
+        }
     }
 
     /** Adds free spins when at least three thunder symbols appear in the grid. */
@@ -607,18 +624,15 @@ public class SlotGrid {
                 additionalX2SymbolChance += 5;
             }
 
-            labels.forEach(label -> label.paintImmediately(label.getVisibleRect()));
             freeSpinsLeft += (freeSpinSymbolAmount - 3) * 10 + 10;
             return true;
         }
-        labels.forEach(label -> label.setBorder(normalBorder));
-        labels.forEach(label -> label.paintImmediately(label.getVisibleRect()));
         return false;
     }
 
     /** Returns an integer from {@code [begin, end)}. */
     private int randomInt(int begin, int end) {
-        return new Random().nextInt(begin, end);
+        return rand.nextInt(begin, end);
     }
 
     public int getTier1SymbolChance() {
@@ -669,13 +683,13 @@ public class SlotGrid {
         this.additionalX2SymbolChance = additionalX2SymbolChance;
     }
 
-    public int getRowAmount() {
-        return rowAmount;
+    public int getColumnCount() {
+        return columnCount;
     }
 
-    public void setRowAmount(int rowAmount) {
-        int tempRowAmount = this.rowAmount;
-        for (int i = 0; i < rowAmount-tempRowAmount; i++) {
+    public void setColumnCount(int columnCount) {
+        int previousColumnCount = this.columnCount;
+        for (int i = 0; i < columnCount - previousColumnCount; i++) {
             upgradeGrid();
         }
     }

@@ -30,7 +30,6 @@ public class CasinoTextField extends JTextField {
             int exponent = Integer.parseInt(parts[1]);
             // Convert the formatted value back to an integer amount.
             amount = base.multiply(BigDecimal.TEN.pow(exponent)).toBigInteger();
-            System.out.println(amount);
         } else {
             amount = new BigInteger(getText());
         }

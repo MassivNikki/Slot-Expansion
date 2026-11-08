@@ -15,15 +15,19 @@ import java.io.*;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Coordinates the game window, saved progress, and the set of slot machines.
  */
 public class Application {
+    private static final Map<IconKey, ImageIcon> ICON_CACHE = new HashMap<>();
 
-    private final boolean resetData = false;
+    private final boolean resetData = true;
     private final ArrayList<JPanel> machinePanels = new ArrayList<>();
     private final String saveDataFilePath = "SaveData";
+    private final ArrayList<String> savedMachineRecords = new ArrayList<>();
     public static JFrame mainFrame;
     public static int maxSevenChance = 10;
     public static int maxTier4Chance = 20;
@@ -36,6 +40,9 @@ public class Application {
     private final ArrayList<Integer> machineXPositions = new ArrayList<>(Arrays.asList(10, 420, 830, 1240, 10, 420, 830, 1240));
 
     private final ArrayList<SlotMachine> machines;
+
+    private record IconKey(String folder, String name, int size) {
+    }
 
     public Application() {
         mainFrame = new MainFrame();
@@ -55,22 +62,27 @@ public class Application {
      * Loads and scales a set of PNG assets whose names do not include extensions.
      */
     public static void generateIconsFromFolder(ArrayList<String> fileNames, ArrayList<ImageIcon> iconsList, String folder, int size) {
-        fileNames.forEach(name -> {
-            ImageIcon original = new ImageIcon(folder + "/" + name + ".png");
-            Image image = original.getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH);
-            iconsList.add(new ImageIcon(image));
-        });
+        for (String name : fileNames) {
+            IconKey key = new IconKey(folder, name, size);
+            ImageIcon icon = ICON_CACHE.computeIfAbsent(key, asset -> {
+                ImageIcon original = new ImageIcon(asset.folder() + "/" + asset.name() + ".png");
+                Image image = original.getImage().getScaledInstance(asset.size(), asset.size(), Image.SCALE_SMOOTH);
+                return new ImageIcon(image);
+            });
+            iconsList.add(icon);
+        }
     }
 
     /**
-     * Counts saved machine records so the window can be sized before loading them.
+     * Reads saved machine records once so their count and state can both be reused.
      */
-    private void countSavedMachines() {
+    private void loadSavedMachineRecords() {
         try (BufferedReader reader = new BufferedReader(new FileReader(saveDataFilePath))) {
-            machineCount = 0;
-            while (reader.readLine() != null) {
-                machineCount++;
+            String record;
+            while ((record = reader.readLine()) != null) {
+                savedMachineRecords.add(record);
             }
+            machineCount = savedMachineRecords.size();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -80,20 +92,13 @@ public class Application {
      * Creates each saved machine and restores its persisted state.
      */
     private void loadSavedMachines() {
-        try (BufferedReader reader = new BufferedReader(new FileReader(saveDataFilePath))) {
-            String line;
-            int machineIndex = 0;
-            while ((line = reader.readLine()) != null) {
-                String[] values = line.split(",");
-                createMachine(machineIndex);
-                if (machineIndex == 0) {
-                    PlayerManager.setCoins(new BigInteger(values[0]));
-                }
-                restoreMachineState(machines.get(machineIndex), values);
-                machineIndex++;
+        for (int machineIndex = 0; machineIndex < savedMachineRecords.size(); machineIndex++) {
+            String[] values = savedMachineRecords.get(machineIndex).split(",");
+            createMachine(machineIndex);
+            if (machineIndex == 0) {
+                PlayerManager.setCoins(new BigInteger(values[0]));
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+            restoreMachineState(machines.get(machineIndex), values);
         }
     }
 
@@ -113,7 +118,7 @@ public class Application {
         machine.slotGrid.setAdditionalX2SymbolChance(Integer.parseInt(values[8]));
         machine.upgradeArea.addedGrids = Integer.parseInt(values[9]);
         machine.setPet(new Pet(Integer.parseInt(values[10])));
-        machine.slotGrid.setRowAmount(Integer.parseInt(values[11]));
+        machine.slotGrid.setColumnCount(Integer.parseInt(values[11]));
         machine.autoCooldown = Integer.parseInt(values[12]);
         machine.manualCooldown = Integer.parseInt(values[13]);
         machine.autoSpinUnlocked = Boolean.parseBoolean(values[14]);
@@ -158,7 +163,7 @@ public class Application {
                 .append(",").append(machine.slotGrid.getAdditionalX2SymbolChance())
                 .append(",").append(machine.upgradeArea.addedGrids)
                 .append(",").append(machine.pet.petTier)
-                .append(",").append(machine.slotGrid.getRowAmount())
+                .append(",").append(machine.slotGrid.getColumnCount())
                 .append(",").append(machine.autoCooldown)
                 .append(",").append(machine.manualCooldown)
                 .append(",").append(machine.autoSpinUnlocked)
@@ -170,7 +175,7 @@ public class Application {
      * Initializes the balance display, restores saved machines, then shows the window.
      */
     public void run() {
-        countSavedMachines();
+        loadSavedMachineRecords();
         PlayerManager.setMainFrame(mainFrame);
         resizeMainFrame();
         loadSavedMachines();

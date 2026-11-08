@@ -11,11 +11,14 @@ import java.awt.event.FocusListener;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Coordinates the user interface and game state for one slot machine.
  */
 public class SlotMachine {
+    private static final Logger LOGGER = Logger.getLogger(SlotMachine.class.getName());
 
     // Machine state and its game systems.
     public HashMap<String, JComponent> allComponents = new HashMap<>();
@@ -26,8 +29,9 @@ public class SlotMachine {
     public Pet pet;
     public int slotLevel;
     protected int slotTier = 1;
-    protected BigInteger rowPrice = BigInteger.valueOf(1000000000);
+    protected BigInteger columnUpgradePrice = BigInteger.valueOf(1000000000);
     private final int[] petChances = {1000, 652, 422, 272, 149, 114, 84, 59, 39, 24, 14, 7, 2, 0};
+    private final Random petRandom = new Random();
     protected BigInteger spinAmount = BigInteger.valueOf(1);
     private BigInteger minimumSpinAmount = BigInteger.valueOf(5);
     private BigInteger maximumSpinAmount = BigInteger.valueOf(20);
@@ -136,26 +140,26 @@ public class SlotMachine {
     }
 
     private void setupGridSizeUpgrade() {
-        CasinoUpgradeButton addNewRowUpgradeButton =
-                new CasinoUpgradeButton(rowPrice, slotTier, "+1 Row",
+        CasinoUpgradeButton addColumnUpgradeButton =
+                new CasinoUpgradeButton(columnUpgradePrice, slotTier, "+1 Column",
                         machinePanel, PriceLabelPosition.UNDER);
-        addNewRowUpgradeButton.setBounds(75 + 50 * slotGrid.getRowAmount(), 170, 50, 150);
-        addNewRowUpgradeButton.addCustomActionListener(e -> {
-            if (slotGrid.getRowAmount() < 5) {
+        addColumnUpgradeButton.setBounds(75 + 50 * slotGrid.getColumnCount(), 170, 50, 150);
+        addColumnUpgradeButton.addCustomActionListener(e -> {
+            if (slotGrid.getColumnCount() < 5) {
                 upgradeArea.upgradeManager.upgradeGrid();
                 pet.setTier(-1);
                 setPetImage(pet.getIcon());
                 machinePanel.repaint();
-                if (slotGrid.getRowAmount() == 5) {
-                    addNewRowUpgradeButton.removeFromMachinePanel(machinePanel);
+                if (slotGrid.getColumnCount() == 5) {
+                    addColumnUpgradeButton.removeFromMachinePanel(machinePanel);
                     machinePanel.repaint();
                 } else {
-                    addNewRowUpgradeButton.setBounds(75 + 50 * slotGrid.getRowAmount(), 170, 50, 150);
+                    addColumnUpgradeButton.setBounds(75 + 50 * slotGrid.getColumnCount(), 170, 50, 150);
                 }
             }
 
         });
-        machinePanel.add(addNewRowUpgradeButton);
+        machinePanel.add(addColumnUpgradeButton);
     }
 
     private void setupAutoSpinControls() {
@@ -380,7 +384,7 @@ public class SlotMachine {
 
     /** Samples a pet tier when this machine levels up and keeps only improvements. */
     protected void choosePetForLevelUp() {
-        int rand = new Random().nextInt(0, 1000);
+        int rand = petRandom.nextInt(0, 1000);
         int tier = -1;
         for (int i = 0; i < petChances.length - 1; i++) {
             if (rand < petChances[i] && rand >= petChances[i + 1]) {
@@ -390,7 +394,7 @@ public class SlotMachine {
         if (pet.petMultis[tier] > pet.getMulti()) {
             pet.setTier(tier);
             setPetImage(pet.getIcon());
-            System.out.println("Won a pet with multi of: " + pet.petMultis[tier]);
+            LOGGER.log(Level.FINE, "Won a pet with multiplier {0}", pet.petMultis[tier]);
         }
     }
 
