@@ -6,15 +6,22 @@ import java.util.Random;
  * Generates slot symbols and owns the upgradeable chance values used to select them.
  */
 final class SlotSymbolGenerator {
-    private final Random random = new Random();
+    private final Random random;
 
     private int additionalSevenSymbolChance;
     private int additionalTier4SymbolChance;
     private int additionalTier3SymbolChance;
     private int additionalTier2SymbolChance;
-    // Kept for the existing save and upgrade UI; rolls use the configured tier-one boundary.
     private int tier1SymbolChance = SymbolChanceConfig.BASE_TIER1_CHANCE;
     private int additionalX2SymbolChance;
+
+    SlotSymbolGenerator() {
+        this(new Random());
+    }
+
+    SlotSymbolGenerator(Random random) {
+        this.random = random;
+    }
 
     /**
      * Rolls a symbol using this machine's current upgrade chances.
@@ -29,64 +36,72 @@ final class SlotSymbolGenerator {
             boolean sevenSymbolsUnlocked,
             boolean tier4SymbolsUnlocked,
             boolean tier3SymbolsUnlocked,
-            boolean tier2SymbolsUnlocked) {
+            boolean tier2SymbolsUnlocked,
+            boolean freeSpins) {
         int chance = random.nextInt(0, SymbolChanceConfig.CHANCE_RANGE);
-        if (isX2Symbol(cellIndex, columnCount, chance)) {
-            return symbolCount - 1;
+        int tier1 = tier1SymbolChance;
+        int tier2 = SymbolChanceConfig.BASE_TIER2_CHANCE + additionalTier2SymbolChance;
+        int tier3 = SymbolChanceConfig.BASE_TIER3_CHANCE + additionalTier3SymbolChance;
+        int tier4 = SymbolChanceConfig.BASE_TIER4_CHANCE + additionalTier4SymbolChance;
+        int requestedBonus = freeSpins ? additionalX2SymbolChance * 2 : 0;
+        int remainingBonus = requestedBonus;
+        int taken = Math.min(tier1, remainingBonus);
+        tier1 -= taken;
+        remainingBonus -= taken;
+        taken = Math.min(tier2, remainingBonus);
+        tier2 -= taken;
+        remainingBonus -= taken;
+        taken = Math.min(tier3, remainingBonus);
+        tier3 -= taken;
+        remainingBonus -= taken;
+        taken = Math.min(tier4, remainingBonus);
+        tier4 -= taken;
+        remainingBonus -= taken;
+        int x2Chance = SymbolChanceConfig.BASE_X2_CHANCE + additionalX2SymbolChance
+                + requestedBonus - remainingBonus;
+        int column = cellIndex % columnCount;
+        if (chance < x2Chance) {
+            // Reserve the same band on edges, where x2 is replaced by a tier-one symbol.
+            return column == 0 || column == columnCount - 1
+                    ? random.nextInt(1, symbolCount - 9) : symbolCount - 1;
         }
-
-        return rollRegularSymbol(chance, symbolCount, sevenSymbolsUnlocked,
+        return rollRegularSymbol(chance, x2Chance, tier1, tier2, tier3, tier4, symbolCount, sevenSymbolsUnlocked,
                 tier4SymbolsUnlocked, tier3SymbolsUnlocked, tier2SymbolsUnlocked);
     }
 
     private int rollRegularSymbol(
             int chance,
+            int x2Chance,
+            int tier1,
+            int tier2,
+            int tier3,
+            int tier4,
             int symbolCount,
             boolean sevenSymbolsUnlocked,
             boolean tier4SymbolsUnlocked,
             boolean tier3SymbolsUnlocked,
             boolean tier2SymbolsUnlocked) {
-        // Each upgrade shifts the later cumulative bands.
-        int cumulativeUpgradeChance = additionalX2SymbolChance;
-        if (chance < SymbolChanceConfig.SEVEN_CHANCE_BOUNDARY
-                + cumulativeUpgradeChance
-                + additionalSevenSymbolChance
-                && sevenSymbolsUnlocked) {
+        int boundary = x2Chance + SymbolChanceConfig.BASE_SEVEN_CHANCE + additionalSevenSymbolChance;
+        if (chance < boundary && sevenSymbolsUnlocked) {
             return symbolCount - 2;
         }
-
-        cumulativeUpgradeChance += additionalSevenSymbolChance;
-        cumulativeUpgradeChance += additionalTier4SymbolChance;
-        if (chance < SymbolChanceConfig.TIER4_CHANCE_BOUNDARY
-                + cumulativeUpgradeChance
-                && tier4SymbolsUnlocked) {
-            return random.nextInt(symbolCount - 4, symbolCount) - 2;
+        boundary += tier4;
+        if (chance < boundary && tier4SymbolsUnlocked) {
+            return random.nextInt(symbolCount - 4, symbolCount - 2);
         }
-
-        cumulativeUpgradeChance += additionalTier3SymbolChance;
-        if (chance < SymbolChanceConfig.TIER3_CHANCE_BOUNDARY
-                + cumulativeUpgradeChance
-                && tier3SymbolsUnlocked) {
+        boundary += tier3;
+        if (chance < boundary && tier3SymbolsUnlocked) {
             return random.nextInt(symbolCount - 6, symbolCount - 4);
         }
-
-        cumulativeUpgradeChance += additionalTier2SymbolChance;
-        if (chance < SymbolChanceConfig.TIER2_CHANCE_BOUNDARY
-                + cumulativeUpgradeChance
-                && tier2SymbolsUnlocked) {
+        boundary += tier2;
+        if (chance < boundary && tier2SymbolsUnlocked) {
             return random.nextInt(symbolCount - 9, symbolCount - 6);
         }
-        if (chance < SymbolChanceConfig.TIER1_CHANCE_BOUNDARY) {
+        boundary += tier1;
+        if (chance < boundary) {
             return random.nextInt(1, symbolCount - 9);
         }
         return 0;
-    }
-
-    private boolean isX2Symbol(int cellIndex, int columnCount, int chance) {
-        int column = cellIndex % columnCount;
-        return chance < SymbolChanceConfig.BASE_X2_CHANCE + additionalX2SymbolChance
-                && column != 0
-                && column != columnCount - 1;
     }
 
     void resetForGridUpgrade() {
@@ -94,16 +109,8 @@ final class SlotSymbolGenerator {
         additionalTier4SymbolChance = 0;
         additionalTier3SymbolChance = 0;
         additionalTier2SymbolChance = 0;
-        tier1SymbolChance = SymbolChanceConfig.GRID_UPGRADE_TIER1_CHANCE;
+        tier1SymbolChance = SymbolChanceConfig.BASE_TIER1_CHANCE;
         additionalX2SymbolChance = 0;
-    }
-
-    void applyFreeSpinX2ChanceMultiplier() {
-        additionalX2SymbolChance *= 3;
-    }
-
-    void removeFreeSpinX2ChanceMultiplier() {
-        additionalX2SymbolChance /= 3;
     }
 
     int getAdditionalSevenSymbolChance() {

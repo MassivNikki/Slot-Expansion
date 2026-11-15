@@ -1,8 +1,7 @@
 package slotexpansion.app;
 
-import slotexpansion.machine.Pet;
+import slotexpansion.machine.MachineSave;
 import slotexpansion.machine.SlotMachine;
-import slotexpansion.machine.SymbolChanceConfig;
 import slotexpansion.player.PlayerManager;
 import slotexpansion.ui.CasinoUpgradeButton;
 import slotexpansion.ui.MainFrame;
@@ -12,11 +11,13 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.*;
+import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,24 +25,9 @@ import java.util.Map;
  */
 public class Application {
     private static final Map<IconKey, ImageIcon> ICON_CACHE = new HashMap<>();
-    private static final String SAVE_DATA_HEADER =
-            "# balance,slotLevel,slotXp,additionalSevenSymbolChance,additionalTier4SymbolChance,"
-                    + "additionalTier3SymbolChance,additionalTier2SymbolChance,tier1SymbolChance,"
-                    + "additionalX2SymbolChance,addedPaylines,petTier,columnCount,autoCooldown,"
-                    + "manualCooldown,autoSpinUnlocked,minStakeUpgrades,maxStakeUpgrades";
-    /** One starting machine and balance for a new or empty save file. */
-    private static final String DEFAULT_SAVE_DATA_RECORD =
-            "1000,1,0,0,0,0,0,51,0,0,-1,3,1000,500,false,0,0";
-
     private final ArrayList<JPanel> machinePanels = new ArrayList<>();
-    private final String saveDataFilePath = "SaveData";
-    private final ArrayList<String> savedMachineRecords = new ArrayList<>();
+    private final SaveRepository saveRepository = new SaveRepository(Path.of("SaveData"));
     public static JFrame mainFrame;
-    public static int maxSevenChance = SymbolChanceConfig.MAX_SEVEN_CHANCE;
-    public static int maxTier4Chance = SymbolChanceConfig.MAX_TIER4_CHANCE;
-    public static int maxTier3Chance = SymbolChanceConfig.MAX_TIER3_CHANCE;
-    public static int maxTier2Chance = SymbolChanceConfig.MAX_TIER2_CHANCE;
-    public static int maxX2Chance = SymbolChanceConfig.MAX_X2_CHANCE;
     private BigInteger machinePurchasePrice = BigInteger.valueOf(100000);
     private int machineCount = 0;
     private final ArrayList<Integer> machineYPositions = new ArrayList<>(Arrays.asList(60, 60, 60, 60, 550, 550, 550, 550));
@@ -57,9 +43,10 @@ public class Application {
         mainFrame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                saveProgress();
-                mainFrame.dispose();
-                System.exit(0);
+                if (saveProgress()) {
+                    mainFrame.dispose();
+                    System.exit(0);
+                }
             }
         });
 
@@ -81,27 +68,7 @@ public class Application {
         }
     }
 
-    /**
-     * Reads saved records once, using a fresh-game record when the file is empty.
-     */
-    private void loadSavedMachineRecords() {
-        try (BufferedReader reader = new BufferedReader(new FileReader(saveDataFilePath))) {
-            String record;
-            while ((record = reader.readLine()) != null) {
-                String trimmedRecord = record.trim();
-                if (!trimmedRecord.isEmpty() && !trimmedRecord.startsWith("#")) {
-                    savedMachineRecords.add(trimmedRecord);
-                }
-            }
-        } catch (FileNotFoundException e) {
-            savedMachineRecords.add(DEFAULT_SAVE_DATA_RECORD);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        if (savedMachineRecords.isEmpty()) {
-            savedMachineRecords.add(DEFAULT_SAVE_DATA_RECORD);
-        }
-        machineCount = savedMachineRecords.size();
+    private void initializeMachinePrice() {
         for (int purchasedTier = 1; purchasedTier < machineCount; purchasedTier++) {
             machinePurchasePrice = machinePurchasePrice
                     .multiply(BigInteger.valueOf(2))
@@ -109,105 +76,58 @@ public class Application {
         }
     }
 
-    /**
-     * Creates each saved machine and restores its persisted state.
-     */
-    private void loadSavedMachines() {
-        for (int machineIndex = 0; machineIndex < savedMachineRecords.size(); machineIndex++) {
-            String[] values = savedMachineRecords.get(machineIndex).split(",");
+    private void loadSavedMachines(List<MachineSave> records) {
+        for (int machineIndex = 0; machineIndex < records.size(); machineIndex++) {
+            MachineSave state = records.get(machineIndex);
             createMachine(machineIndex);
             if (machineIndex == 0) {
-                PlayerManager.setCoins(new BigInteger(values[0]));
+                PlayerManager.setCoins(state.balance());
             }
-            restoreMachineState(machines.get(machineIndex), values);
+            machines.get(machineIndex).restore(state);
         }
     }
 
-    /**
-     * Applies the machine fields stored in one comma-separated save record.
-     * Columns are balance, level, XP, symbol chances, added paylines, pet tier,
-     * grid size, cooldowns, auto-spin state, and stake-limit upgrade counts.
-     */
-    private void restoreMachineState(SlotMachine machine, String[] values) {
-        machine.slotLevelComponent.setSlotLevel(Integer.parseInt(values[1]));
-        machine.slotLevelComponent.setSlotXp(new BigInteger(values[2]));
-        machine.slotGrid.setAdditionalSevenSymbolChance(Integer.parseInt(values[3]));
-        machine.slotGrid.setAdditionalTier4SymbolChance(Integer.parseInt(values[4]));
-        machine.slotGrid.setAdditionalTier3SymbolChance(Integer.parseInt(values[5]));
-        machine.slotGrid.setAdditionalTier2SymbolChance(Integer.parseInt(values[6]));
-        machine.slotGrid.setTier1SymbolChance(Integer.parseInt(values[7]));
-        machine.slotGrid.setAdditionalX2SymbolChance(Integer.parseInt(values[8]));
-        machine.upgradeArea.addedGrids = Integer.parseInt(values[9]);
-        machine.setPet(new Pet(Integer.parseInt(values[10])));
-        machine.slotGrid.setColumnCount(Integer.parseInt(values[11]));
-        machine.autoCooldown = Integer.parseInt(values[12]);
-        machine.manualCooldown = Integer.parseInt(values[13]);
-        machine.autoSpinUnlocked = Boolean.parseBoolean(values[14]);
-        machine.minIncreased = Integer.parseInt(values[15]);
-        machine.maxIncreased = Integer.parseInt(values[16]);
-        machine.updateComponentsWithData();
-    }
-
-    /**
-     * Writes the current balance and machine upgrades when the window closes.
-     */
-    private void saveProgress() {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(saveDataFilePath))) {
-            writer.println(SAVE_DATA_HEADER);
+    private boolean saveProgress() {
+        try {
+            List<MachineSave> records = new ArrayList<>();
             for (SlotMachine machine : machines) {
-                StringBuilder saveRecord = new StringBuilder();
-                appendMachineState(saveRecord, machine);
-                writer.println(saveRecord);
+                records.add(machine.snapshot(PlayerManager.getCoins()));
             }
-
-        } catch (IOException e) {
-            e.printStackTrace();
+            saveRepository.save(records);
+            return true;
+        } catch (IOException | IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(mainFrame, "Progress could not be saved: " + e.getMessage(),
+                    "Save failed", JOptionPane.ERROR_MESSAGE);
+            return false;
         }
-    }
-
-    /**
-     * Appends fields in the established SaveData column order.
-     * Keep this order aligned with {@link #restoreMachineState(SlotMachine, String[])}.
-     */
-    private void appendMachineState(StringBuilder saveRecord, SlotMachine machine) {
-        saveRecord.append(PlayerManager.getCoins())
-                .append(",").append(machine.slotLevel)
-                .append(",").append(machine.getSlotXp())
-                .append(",").append(machine.slotGrid.getAdditionalSevenSymbolChance())
-                .append(",").append(machine.slotGrid.getAdditionalTier4SymbolChance())
-                .append(",").append(machine.slotGrid.getAdditionalTier3SymbolChance())
-                .append(",").append(machine.slotGrid.getAdditionalTier2SymbolChance())
-                .append(",").append(machine.slotGrid.getTier1SymbolChance())
-                .append(",").append(machine.slotGrid.getAdditionalX2SymbolChance())
-                .append(",").append(machine.upgradeArea.addedGrids)
-                .append(",").append(machine.pet.petTier)
-                .append(",").append(machine.slotGrid.getColumnCount())
-                .append(",").append(machine.autoCooldown)
-                .append(",").append(machine.manualCooldown)
-                .append(",").append(machine.autoSpinUnlocked)
-                .append(",").append(machine.minIncreased)
-                .append(",").append(machine.maxIncreased);
     }
 
     /**
      * Initializes the balance display, restores saved machines, then shows the window.
      */
     public void run() {
-        loadSavedMachineRecords();
+        List<MachineSave> records;
+        try {
+            records = saveRepository.load();
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(mainFrame, "Progress could not be loaded: " + e.getMessage(),
+                    "Load failed", JOptionPane.ERROR_MESSAGE);
+            mainFrame.dispose();
+            return;
+        }
+        machineCount = records.size();
+        initializeMachinePrice();
         PlayerManager.setMainFrame(mainFrame);
         resizeMainFrame();
-        loadSavedMachines();
+        loadSavedMachines(records);
         mainFrame.setVisible(true);
     }
 
     private void resizeMainFrame() {
-        if (machineCount < 5) {
-            mainFrame.setSize(machineXPositions.get(machineCount - 1) + (20 + 480) * (1 - machineCount / 5), (1 + (machineCount / 5)) * 450 + 100);
-            PlayerManager.setSizeToMainFrameSize();
-        } else if (machineCount == 5) {
-            mainFrame.setSize(mainFrame.getWidth(), (1 + (machineCount / 5)) * 450 + 100);
-            PlayerManager.setSizeToMainFrameSize();
-        }
+        int columns = Math.min(machineCount, 4);
+        int rows = (machineCount + 3) / 4;
+        mainFrame.setSize(machineXPositions.get(columns - 1) + 500, rows == 1 ? 550 : 1040);
+        PlayerManager.setSizeToMainFrameSize();
     }
 
     private void createMachine(int machineIndex) {

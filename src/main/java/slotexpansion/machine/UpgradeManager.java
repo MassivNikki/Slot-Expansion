@@ -1,131 +1,107 @@
 package slotexpansion.machine;
 
-import slotexpansion.app.Application;
+import slotexpansion.machine.UpgradeArea.Upgrade;
 import slotexpansion.ui.CasinoUpgradeButton;
 
-/**
- * Applies purchases made in an {@link UpgradeArea} to its machine's slot grid.
- */
+/** Applies upgrade effects and updates the corresponding controls. */
 public class UpgradeManager {
+    private final UpgradeArea area;
+    private final SlotGrid grid;
 
-    private final UpgradeArea upgradeArea;
-    private final SlotGrid slotGrid;
-
-    public UpgradeManager(SlotGrid slotGrid, UpgradeArea upgradeArea) {
-        this.slotGrid = slotGrid;
-        this.upgradeArea = upgradeArea;
+    public UpgradeManager(SlotGrid grid, UpgradeArea area) {
+        this.grid = grid;
+        this.area = area;
     }
 
-    private void updateTierLabel() {
-        // Higher-tier symbol chances are taken from lower-tier bands to keep the total fixed.
-        if (slotGrid.getTier1SymbolChance() == 0) {
-            if (slotGrid.getAdditionalTier2SymbolChance() == -20) {
-                if (slotGrid.getAdditionalTier3SymbolChance() == -15) {
-                    if (slotGrid.getAdditionalTier4SymbolChance() > -10) {
-                        slotGrid.setAdditionalTier4SymbolChance(slotGrid.getAdditionalTier4SymbolChance() - 1);
-                        upgradeArea.upgradeIncreaseButtons.get(1).setChanceLabelText(slotGrid.getAdditionalTier4SymbolChance() + upgradeArea.symbolOrgChances[1] + "%");
-                    }
-                } else {
-                    slotGrid.setAdditionalTier3SymbolChance(slotGrid.getAdditionalTier3SymbolChance() - 1);
-                    upgradeArea.upgradeIncreaseButtons.get(2).setChanceLabelText(slotGrid.getAdditionalTier3SymbolChance() + upgradeArea.symbolOrgChances[2] + "%");
-                }
-            } else {
-                slotGrid.setAdditionalTier2SymbolChance(slotGrid.getAdditionalTier2SymbolChance() - 1);
-                upgradeArea.upgradeIncreaseButtons.get(3).setChanceLabelText(slotGrid.getAdditionalTier2SymbolChance() + upgradeArea.symbolOrgChances[3] + "%");
-            }
-
+    /** A higher chance replaces one point of the lowest available symbol band. */
+    private void takeFromLowerBand(Upgrade upgraded) {
+        if (grid.getTier1SymbolChance() > 0) {
+            grid.setTier1SymbolChance(grid.getTier1SymbolChance() - 1);
+            area.button(Upgrade.TIER1).setChanceLabelText(grid.getTier1SymbolChance() + "%");
+        } else if (upgraded != Upgrade.TIER2
+                && grid.getAdditionalTier2SymbolChance() > -SymbolChanceConfig.BASE_TIER2_CHANCE) {
+            grid.setAdditionalTier2SymbolChance(grid.getAdditionalTier2SymbolChance() - 1);
+            updateLabel(Upgrade.TIER2, grid.getAdditionalTier2SymbolChance(),
+                    SymbolChanceConfig.BASE_TIER2_CHANCE, SymbolChanceConfig.MAX_TIER2_CHANCE);
+        } else if (upgraded != Upgrade.TIER2 && upgraded != Upgrade.TIER3
+                && grid.getAdditionalTier3SymbolChance() > -SymbolChanceConfig.BASE_TIER3_CHANCE) {
+            grid.setAdditionalTier3SymbolChance(grid.getAdditionalTier3SymbolChance() - 1);
+            updateLabel(Upgrade.TIER3, grid.getAdditionalTier3SymbolChance(),
+                    SymbolChanceConfig.BASE_TIER3_CHANCE, SymbolChanceConfig.MAX_TIER3_CHANCE);
+        } else if ((upgraded == Upgrade.SEVEN || upgraded == Upgrade.X2)
+                && grid.getAdditionalTier4SymbolChance() > -SymbolChanceConfig.BASE_TIER4_CHANCE) {
+            grid.setAdditionalTier4SymbolChance(grid.getAdditionalTier4SymbolChance() - 1);
+            updateLabel(Upgrade.TIER4, grid.getAdditionalTier4SymbolChance(),
+                    SymbolChanceConfig.BASE_TIER4_CHANCE, SymbolChanceConfig.MAX_TIER4_CHANCE);
         } else {
-            slotGrid.setTier1SymbolChance(slotGrid.getTier1SymbolChance() - 1);
-            upgradeArea.upgradeIncreaseButtons.get(4).setChanceLabelText(slotGrid.getTier1SymbolChance() + "%");
+            throw new IllegalStateException("No symbol probability remains to upgrade");
         }
+
     }
 
-    /** Advances the grid size and resets the chance upgrades for the new grid. */
+    boolean canIncrease(Upgrade upgraded) {
+        if (grid.getTier1SymbolChance() > 0) return true;
+        if (upgraded != Upgrade.TIER2
+                && grid.getAdditionalTier2SymbolChance() > -SymbolChanceConfig.BASE_TIER2_CHANCE) return true;
+        if (upgraded != Upgrade.TIER2 && upgraded != Upgrade.TIER3
+                && grid.getAdditionalTier3SymbolChance() > -SymbolChanceConfig.BASE_TIER3_CHANCE) return true;
+        return (upgraded == Upgrade.SEVEN || upgraded == Upgrade.X2)
+                && grid.getAdditionalTier4SymbolChance() > -SymbolChanceConfig.BASE_TIER4_CHANCE;
+    }
+
     public void upgradeGrid() {
-        slotGrid.upgradeGrid();
-        resetAllUpgrades();
+        grid.upgradeGrid();
+        area.resetForGridExpansion();
     }
 
-    private void resetAllUpgrades() {
-        for (int i = 0; i < upgradeArea.upgradeIncreaseButtons.size()-1; i++) {
-            upgradeArea.upgradeIncreaseButtons.get(i).setChanceLabelText(upgradeArea.symbolOrgChances[i]+"%");
-        }
-        upgradeArea.upgradeIncreaseButtons.getLast().setChanceLabelText(slotGrid.getWinningGrids().size() + "/" + (slotGrid.getWinningGrids().size() + slotGrid.getCurrentAdditionalWinningGrid().size()));
-        upgradeArea.addedGrids = 0;
-        enableAllLabelsAndButtons();
+    public void addNewWinningGrid(int index) {
+        grid.addNewWinningGrid(index);
+        area.addedGrids++;
+        area.updatePaylineLabel();
     }
 
-    private void enableAllLabelsAndButtons() {
-        upgradeArea.upgradeIncreaseButtons.forEach(CasinoUpgradeButton::enableUpgradable);
-    }
-
-    /** Activates a purchased optional payline and updates its remaining count. */
-    public void addNewWinningGrid(int grid) {
-        String labelText = upgradeArea.upgradeIncreaseButtons.get(6).getChanceLabelText();
-        int delimiterIndex = labelText.indexOf('/');
-        upgradeArea.addedGrids++;
-        slotGrid.addNewWinningGrid(grid);
-        upgradeArea.upgradeIncreaseButtons.get(6).setChanceLabelText(
-                slotGrid.getWinningGrids().size() + labelText.substring(delimiterIndex));
-        if (upgradeArea.addedGrids == slotGrid.getCurrentAdditionalWinningGrid().size()) {
-            upgradeArea.upgradeIncreaseButtons.get(6).disableUpgradable();
+    private void updateLabel(Upgrade kind, int additional, int baseline, int maximum) {
+        CasinoUpgradeButton button = area.button(kind);
+        button.setChanceLabelText((additional + baseline) + "/" + maximum + "%");
+        if (additional >= maximum - baseline) {
+            button.disableUpgradable();
+        } else {
+            button.enableUpgradable();
         }
     }
 
-    private void increaseChance(int chance, CasinoUpgradeButton chanceButton, int symbol, int originalChance, int maxChance) {
-        chance++;
-        switch (symbol) {
-            case 7:
-                slotGrid.setAdditionalSevenSymbolChance(chance);
-                break;
-            case 4:
-                slotGrid.setAdditionalTier4SymbolChance(chance);
-                break;
-            case 3:
-                slotGrid.setAdditionalTier3SymbolChance(chance);
-                break;
-            case 2:
-                slotGrid.setAdditionalTier2SymbolChance(chance);
-                break;
-            case 1:
-                slotGrid.setAdditionalX2SymbolChance(chance);
-                break;
-        }
-        chanceButton.setChanceLabelText(chance + originalChance + "/" + maxChance + "%");
-        updateTierLabel();
-        if (chance >= maxChance - originalChance) {
-            chanceButton.disableUpgradable();
-        }
-    }
-
-    /** Increases the chance of rolling a seven symbol by one step. */
     public void increaseAdditionalSevenSymbolChance() {
-        increaseChance(slotGrid.getAdditionalSevenSymbolChance(),
-                upgradeArea.upgradeIncreaseButtons.getFirst(), 7, upgradeArea.symbolOrgChances[0], Application.maxSevenChance);
+        grid.setAdditionalSevenSymbolChance(grid.getAdditionalSevenSymbolChance() + 1);
+        takeFromLowerBand(Upgrade.SEVEN);
+        updateLabel(Upgrade.SEVEN, grid.getAdditionalSevenSymbolChance(),
+                SymbolChanceConfig.BASE_SEVEN_CHANCE, SymbolChanceConfig.MAX_SEVEN_CHANCE);
     }
 
-    /** Increases the chance of rolling a tier-four symbol by one step. */
     public void increaseAdditionalTier4SymbolChance() {
-        increaseChance(slotGrid.getAdditionalTier4SymbolChance(),
-                upgradeArea.upgradeIncreaseButtons.get(1), 4, upgradeArea.symbolOrgChances[1], Application.maxTier4Chance);
+        grid.setAdditionalTier4SymbolChance(grid.getAdditionalTier4SymbolChance() + 1);
+        takeFromLowerBand(Upgrade.TIER4);
+        updateLabel(Upgrade.TIER4, grid.getAdditionalTier4SymbolChance(),
+                SymbolChanceConfig.BASE_TIER4_CHANCE, SymbolChanceConfig.MAX_TIER4_CHANCE);
     }
 
-    /** Increases the chance of rolling a tier-three symbol by one step. */
     public void increaseAdditionalTier3SymbolChance() {
-        increaseChance(slotGrid.getAdditionalTier3SymbolChance(),
-                upgradeArea.upgradeIncreaseButtons.get(2), 3, upgradeArea.symbolOrgChances[2], Application.maxTier3Chance);
+        grid.setAdditionalTier3SymbolChance(grid.getAdditionalTier3SymbolChance() + 1);
+        takeFromLowerBand(Upgrade.TIER3);
+        updateLabel(Upgrade.TIER3, grid.getAdditionalTier3SymbolChance(),
+                SymbolChanceConfig.BASE_TIER3_CHANCE, SymbolChanceConfig.MAX_TIER3_CHANCE);
     }
 
-    /** Increases the chance of rolling a tier-two symbol by one step. */
     public void increaseAdditionalTier2SymbolChance() {
-        increaseChance(slotGrid.getAdditionalTier2SymbolChance(),
-                upgradeArea.upgradeIncreaseButtons.get(3), 2, upgradeArea.symbolOrgChances[3], Application.maxTier2Chance);
+        grid.setAdditionalTier2SymbolChance(grid.getAdditionalTier2SymbolChance() + 1);
+        takeFromLowerBand(Upgrade.TIER2);
+        updateLabel(Upgrade.TIER2, grid.getAdditionalTier2SymbolChance(),
+                SymbolChanceConfig.BASE_TIER2_CHANCE, SymbolChanceConfig.MAX_TIER2_CHANCE);
     }
 
-    /** Increases the chance of rolling an x2 symbol by one step. */
     public void increaseAdditionalX2SymbolChance() {
-        increaseChance(slotGrid.getAdditionalX2SymbolChance(),
-                upgradeArea.upgradeIncreaseButtons.get(5), 1, upgradeArea.symbolOrgChances[5], Application.maxX2Chance);
+        grid.setAdditionalX2SymbolChance(grid.getAdditionalX2SymbolChance() + 1);
+        takeFromLowerBand(Upgrade.X2);
+        updateLabel(Upgrade.X2, grid.getAdditionalX2SymbolChance(),
+                SymbolChanceConfig.BASE_X2_CHANCE, SymbolChanceConfig.MAX_X2_CHANCE);
     }
-
 }

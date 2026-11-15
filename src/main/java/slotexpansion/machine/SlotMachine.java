@@ -9,7 +9,6 @@ import java.awt.*;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.math.BigInteger;
-import java.util.HashMap;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -21,25 +20,20 @@ public class SlotMachine {
     private static final Logger LOGGER = Logger.getLogger(SlotMachine.class.getName());
 
     // Machine state and its game systems.
-    public HashMap<String, JComponent> allComponents = new HashMap<>();
     protected final JPanel machinePanel;
-    public SlotLevelComponent slotLevelComponent;
-    public SlotGrid slotGrid;
-    public UpgradeArea upgradeArea;
-    public Pet pet;
-    public int slotLevel;
+    final SlotLevelComponent slotLevelComponent;
+    final SlotGrid slotGrid;
+    final UpgradeArea upgradeArea;
+    final MachineState state;
     protected int slotTier = 1;
     protected BigInteger columnUpgradePrice = BigInteger.valueOf(50000);
     private final int[] petChances = {1000, 652, 422, 272, 149, 114, 84, 59, 39, 24, 14, 7, 0};
     private final Random petRandom = new Random();
-    protected BigInteger spinAmount = BigInteger.valueOf(1);
-    private BigInteger minimumSpinAmount = BigInteger.valueOf(5);
-    private BigInteger maximumSpinAmount = BigInteger.valueOf(20);
-    public int minIncreased = 0;
-    public int maxIncreased = 0;
-    public boolean autoSpinUnlocked = false;
-    public int autoCooldown = 1000;
-    public int manualCooldown = 500;
+    private int minIncreased = 0;
+    private int maxIncreased = 0;
+    private boolean autoSpinUnlocked = false;
+    private int autoCooldown = 1000;
+    private int manualCooldown = 500;
 
     // Swing components for the machine's controls and status.
     private final JLabel petImageLabel = new JLabel();
@@ -52,6 +46,10 @@ public class SlotMachine {
     private final CasinoButton minStakeBtt = new CasinoButton("min");
     private CasinoUpgradeButton increaseMaxSpinAmountBtt;
     private CasinoUpgradeButton increaseMinSpinAmountBtt;
+    private CasinoUpgradeButton manualCooldownUpgradeButton;
+    private CasinoUpgradeButton autoCooldownUpgradeButton;
+    private CasinoUpgradeButton autoSpinUnlockButton;
+    private CasinoButton showUpgrades;
     protected CasinoUpgradeButton addColumnUpgradeButton;
     private final Border normalBorder = BorderFactory.createLineBorder(Color.black);
 
@@ -62,9 +60,14 @@ public class SlotMachine {
     private int currentCooldown = 1000;
 
     public SlotMachine(JPanel machinePanel, int tier) {
+        this(machinePanel, tier, new SlotSymbolGenerator());
+    }
+
+    SlotMachine(JPanel machinePanel, int tier, SlotSymbolGenerator symbolGenerator) {
         this.machinePanel = machinePanel;
+        state = new MachineState(symbolGenerator);
         slotTier = tier;
-        slotGrid = new SlotGrid(machinePanel, this);
+        slotGrid = new SlotGrid(machinePanel, this, state);
         slotLevelComponent = new SlotLevelComponent(machinePanel, this);
         upgradeArea = new UpgradeArea(slotGrid, this);
         setPet(new Pet(-1));
@@ -92,8 +95,9 @@ public class SlotMachine {
         }
         restoreGridUpgradeState();
         restoreManualCooldownUpgradeState();
-        updateSpinAmount(minimumSpinAmount);
+        updateSpinAmount(state.minimumStake());
         setupAutoSpinControls();
+        updateTimer();
         spinBtt.setText("<html>Spin(" + manualCooldown + "ms)<br>Auto(" + autoCooldown + "ms)</html>");
         upgradeArea.initiate();
         arrangeAllComponents();
@@ -111,23 +115,57 @@ public class SlotMachine {
         petImageLabel.setBounds(30, 75, 80, 40);
         changeAutoSpinCheckbox.setBounds(spinBtt.getX() + spinBtt.getWidth() + 10, 70, 50, 20);
         winLabel.setBounds(170, 145, 100, 30);
-        JComponent comp = allComponents.get("spinCoolDownUpgradeBtt");
-        if (comp != null) {
-            comp.setBounds(spinBtt.getX(), spinBtt.getY() + spinBtt.getHeight() + 5, 40, 20);
+        if (manualCooldownUpgradeButton != null) {
+            manualCooldownUpgradeButton.setBounds(spinBtt.getX(), spinBtt.getY() + spinBtt.getHeight() + 5, 40, 20);
         }
-        comp = allComponents.get("autoSpinCooldownUpgradeButton");
-        if (comp != null) {
-            comp.setBounds(changeAutoSpinCheckbox.getX(), changeAutoSpinCheckbox.getY() + changeAutoSpinCheckbox.getHeight(), changeAutoSpinCheckbox.getWidth(), 20);
+        if (autoCooldownUpgradeButton != null) {
+            autoCooldownUpgradeButton.setBounds(changeAutoSpinCheckbox.getX(), changeAutoSpinCheckbox.getY() + changeAutoSpinCheckbox.getHeight(), changeAutoSpinCheckbox.getWidth(), 20);
         }
-        comp = allComponents.get("autoSpinUnlockButton");
-        if (comp != null) {
-            comp.setBounds(changeAutoSpinCheckbox.getX(), changeAutoSpinCheckbox.getY(), changeAutoSpinCheckbox.getWidth() + 10, changeAutoSpinCheckbox.getHeight() + 50);
+        if (autoSpinUnlockButton != null) {
+            autoSpinUnlockButton.setBounds(changeAutoSpinCheckbox.getX(), changeAutoSpinCheckbox.getY(), changeAutoSpinCheckbox.getWidth() + 10, changeAutoSpinCheckbox.getHeight() + 50);
         }
     }
 
     /** Returns the machine's accumulated experience. */
     public BigInteger getSlotXp() {
-        return slotLevelComponent.slotXp;
+        return state.xp();
+    }
+
+    /** Captures persistent state; temporary free-spin and animation state is not saved. */
+    public MachineSave snapshot(BigInteger balance) {
+        return new MachineSave(balance, state.level(), getSlotXp(),
+                slotGrid.getAdditionalSevenSymbolChance(), slotGrid.getAdditionalTier4SymbolChance(),
+                slotGrid.getAdditionalTier3SymbolChance(), slotGrid.getAdditionalTier2SymbolChance(),
+                slotGrid.getTier1SymbolChance(), slotGrid.getAdditionalX2SymbolChance(),
+                upgradeArea.addedGrids, state.pet().getTier(), slotGrid.getColumnCount(), autoCooldown,
+                manualCooldown, autoSpinUnlocked, minIncreased, maxIncreased,
+                upgradeArea.purchaseCount(UpgradeArea.Upgrade.SEVEN),
+                upgradeArea.purchaseCount(UpgradeArea.Upgrade.TIER4),
+                upgradeArea.purchaseCount(UpgradeArea.Upgrade.TIER3),
+                upgradeArea.purchaseCount(UpgradeArea.Upgrade.TIER2),
+                upgradeArea.purchaseCount(UpgradeArea.Upgrade.X2));
+    }
+
+    /** Restores the grid before its odds because grid expansion resets odds. */
+    public void restore(MachineSave state) {
+        slotLevelComponent.setSlotLevel(state.level());
+        slotLevelComponent.setSlotXp(state.xp());
+        slotGrid.setColumnCount(state.columns());
+        slotGrid.setAdditionalSevenSymbolChance(state.sevenChance());
+        slotGrid.setAdditionalTier4SymbolChance(state.tier4Chance());
+        slotGrid.setAdditionalTier3SymbolChance(state.tier3Chance());
+        slotGrid.setAdditionalTier2SymbolChance(state.tier2Chance());
+        slotGrid.setTier1SymbolChance(state.tier1Chance());
+        slotGrid.setAdditionalX2SymbolChance(state.x2Chance());
+        upgradeArea.addedGrids = state.addedPaylines();
+        upgradeArea.restorePurchaseCounts(state);
+        setPet(new Pet(state.petTier()));
+        autoCooldown = state.autoCooldown();
+        manualCooldown = state.manualCooldown();
+        autoSpinUnlocked = state.autoUnlocked();
+        minIncreased = state.minUpgrades();
+        maxIncreased = state.maxUpgrades();
+        updateComponentsWithData();
     }
 
     private void buildInitialComponents() {
@@ -135,7 +173,7 @@ public class SlotMachine {
         setupSpinButton();
         setupStakeButtons();
         setupGridSizeUpgrade();
-        CasinoButton showUpgrades = new CasinoButton("Upgrades");
+        showUpgrades = new CasinoButton("Upgrades");
         showUpgrades.setBounds(machinePanel.getWidth() / 2 - 75, 350, 150, 50);
         showUpgrades.addActionListener(e -> upgradeArea.setVisible(true));
         showUpgrades.setBackground(new Color(0x2dce98));
@@ -150,8 +188,9 @@ public class SlotMachine {
         addColumnUpgradeButton.addCustomActionListener(e -> {
             if (slotGrid.getColumnCount() < 5) {
                 upgradeArea.upgradeManager.upgradeGrid();
-                pet.setTier(-1);
-                setPetImage(pet.getIcon());
+                state.pet().setTier(-1);
+                setPetImage(state.pet().getIcon());
+                refreshTimerForPet();
                 moveUpgradeGridButton();
             }
 
@@ -167,15 +206,14 @@ public class SlotMachine {
     }
 
     private void restoreManualCooldownUpgradeState() {
-        JComponent component = allComponents.get("spinCoolDownUpgradeBtt");
-        if (component instanceof CasinoUpgradeButton cooldownUpgradeButton) {
+        if (manualCooldownUpgradeButton != null) {
             int purchasedUpgrades = Math.max(0, (500 - manualCooldown) / 50);
             for (int i = 0; i < purchasedUpgrades; i++) {
-                cooldownUpgradeButton.increasePrice();
+                manualCooldownUpgradeButton.increasePrice();
             }
             if (manualCooldown <= 200) {
-                cooldownUpgradeButton.removeFromMachinePanel(machinePanel);
-                allComponents.remove("spinCoolDownUpgradeBtt");
+                manualCooldownUpgradeButton.removeFromMachinePanel(machinePanel);
+                manualCooldownUpgradeButton = null;
             }
         }
     }
@@ -191,17 +229,17 @@ public class SlotMachine {
 
     private void setupAutoSpinControls() {
         if (!autoSpinUnlocked) {
-            CasinoUpgradeButton autoSpinUnlockButton =
+            autoSpinUnlockButton =
                     new CasinoUpgradeButton(BigInteger.valueOf(10000), slotTier, "<html>Unlock<br>AutoSpin</html>",
                             machinePanel, PriceLabelPosition.UNDER);
             autoSpinUnlockButton.addCustomActionListener(e -> {
                 autoSpinUnlocked = true;
                 changeAutoSpinCheckbox.setEnabled(true);
                 autoSpinUnlockButton.removeFromMachinePanel(machinePanel);
+                autoSpinUnlockButton = null;
                 machinePanel.repaint();
             });
             machinePanel.add(autoSpinUnlockButton);
-            allComponents.put("autoSpinUnlockButton", autoSpinUnlockButton);
         }
         setupAutoSpinCheckbox();
 
@@ -219,20 +257,20 @@ public class SlotMachine {
         });
         machinePanel.add(spinBtt);
         if (manualCooldown > 300) {
-            CasinoUpgradeButton spinCoolDownUpgradeBtt =
+            manualCooldownUpgradeButton =
                     new CasinoUpgradeButton(BigInteger.valueOf(1000), slotTier, "-50ms", machinePanel, PriceLabelPosition.RIGHT);
-            spinCoolDownUpgradeBtt.addCustomActionListener(e -> {
+            manualCooldownUpgradeButton.addCustomActionListener(e -> {
                 manualCooldown -= 50;
                 spinBtt.setText("<html>Spin(" + manualCooldown + "ms)<br>Auto(" + autoCooldown + "ms)</html>");
                 updateTimer();
                 timer.start();
                 if (manualCooldown == 200) {
-                    spinCoolDownUpgradeBtt.removeFromMachinePanel(machinePanel);
+                    manualCooldownUpgradeButton.removeFromMachinePanel(machinePanel);
+                    manualCooldownUpgradeButton = null;
                     machinePanel.repaint();
                 }
             });
-            machinePanel.add(spinCoolDownUpgradeBtt);
-            allComponents.put("spinCoolDownUpgradeBtt", spinCoolDownUpgradeBtt);
+            machinePanel.add(manualCooldownUpgradeButton);
         }
         updateTimer();
     }
@@ -253,25 +291,25 @@ public class SlotMachine {
         });
         machinePanel.add(changeAutoSpinCheckbox);
         if (autoCooldown > 200) {
-            CasinoUpgradeButton autoSpinCooldownUpgradeButton =
+            autoCooldownUpgradeButton =
                     new CasinoUpgradeButton(BigInteger.valueOf(2500), slotTier, "-50ms",
                             machinePanel, PriceLabelPosition.UNDER);
             int purchasedUpgrades = Math.max(0, (1000 - autoCooldown) / 50);
             for (int i = 0; i < purchasedUpgrades; i++) {
-                autoSpinCooldownUpgradeButton.increasePrice();
+                autoCooldownUpgradeButton.increasePrice();
             }
-            autoSpinCooldownUpgradeButton.addCustomActionListener(e -> {
+            autoCooldownUpgradeButton.addCustomActionListener(e -> {
                 autoCooldown -= 50;
                 spinBtt.setText("<html>Spin(" + manualCooldown + "ms)<br>Auto(" + autoCooldown + "ms)</html>");
                 updateTimer();
                 timer.start();
                 if (autoCooldown == 200) {
-                    autoSpinCooldownUpgradeButton.removeFromMachinePanel(machinePanel);
+                    autoCooldownUpgradeButton.removeFromMachinePanel(machinePanel);
+                    autoCooldownUpgradeButton = null;
                     machinePanel.repaint();
                 }
             });
-            machinePanel.add(autoSpinCooldownUpgradeButton);
-            allComponents.put("autoSpinCooldownUpgradeButton", autoSpinCooldownUpgradeButton);
+            machinePanel.add(autoCooldownUpgradeButton);
         }
 
     }
@@ -289,13 +327,23 @@ public class SlotMachine {
             @Override
             public void focusLost(FocusEvent e) {
                 spinAmountLabel.setBackground(null);
-                BigInteger valuePerLane = spinAmountLabel.getAmount();
-                if (valuePerLane.compareTo(getMaximumAmountPerLane()) > 0) {
-                    updateSpinAmount(maximumSpinAmount);
-                } else if (valuePerLane.compareTo(getMinimumCoinsPerLane()) < 0) {
-                    updateSpinAmount(minimumSpinAmount);
-                } else {
-                    updateSpinAmount(valuePerLane);
+                if (slotGrid.isFreeSpinsActivated()) {
+                    updateSpinAmount(state.stake());
+                    return;
+                }
+                try {
+                    BigInteger valuePerLane = spinAmountLabel.getAmount();
+                    if (valuePerLane.compareTo(getMaximumAmountPerLane()) > 0) {
+                        updateSpinAmount(state.maximumStake());
+                    } else if (valuePerLane.compareTo(getMinimumCoinsPerLane()) < 0) {
+                        updateSpinAmount(state.minimumStake());
+                    } else {
+                        updateSpinAmount(valuePerLane);
+                    }
+                } catch (NumberFormatException | ArithmeticException ex) {
+                    updateSpinAmount(state.stake());
+                    JOptionPane.showMessageDialog(machinePanel, "Enter a whole number for the stake.",
+                            "Invalid stake", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
@@ -312,12 +360,12 @@ public class SlotMachine {
         stakeUpBtt.addActionListener(e -> {
             // Stake changes are disabled while free spins are active.
             if (!slotGrid.isFreeSpinsActivated()) {
-                updateSpinAmount(spinAmount.add(maximumSpinAmount.divide(BigInteger.valueOf(10))));
-                if (spinAmount.compareTo(maximumSpinAmount) > 0) {
-                    updateSpinAmount(maximumSpinAmount);
+                updateSpinAmount(state.stake().add(state.maximumStake().divide(BigInteger.valueOf(10))));
+                if (state.stake().compareTo(state.maximumStake()) > 0) {
+                    updateSpinAmount(state.maximumStake());
                 }
-                if (spinAmount.compareTo(minimumSpinAmount) < 0) {
-                    updateSpinAmount(minimumSpinAmount);
+                if (state.stake().compareTo(state.minimumStake()) < 0) {
+                    updateSpinAmount(state.minimumStake());
                 }
             }
         });
@@ -328,9 +376,9 @@ public class SlotMachine {
         stakeDownBtt.addActionListener(e -> {
             // Stake changes are disabled while free spins are active.
             if (!slotGrid.isFreeSpinsActivated()) {
-                updateSpinAmount(spinAmount.subtract(maximumSpinAmount.divide(BigInteger.valueOf(10))));
-                if (spinAmount.compareTo(minimumSpinAmount) < 0) {
-                    updateSpinAmount(minimumSpinAmount);
+                updateSpinAmount(state.stake().subtract(state.maximumStake().divide(BigInteger.valueOf(10))));
+                if (state.stake().compareTo(state.minimumStake()) < 0) {
+                    updateSpinAmount(state.minimumStake());
                 }
             }
 
@@ -342,11 +390,11 @@ public class SlotMachine {
         maxStakeBtt.setBackground(new Color(0xD4B483));
         maxStakeBtt.addActionListener(e -> {
             if (!slotGrid.isFreeSpinsActivated()) {
-                updateSpinAmount(maximumSpinAmount);
-                if (spinAmount.compareTo(PlayerManager.getCoins()) > 0 && PlayerManager.getCoins().compareTo(BigInteger.valueOf(0)) > 0) {
+                updateSpinAmount(state.maximumStake());
+                if (state.stake().compareTo(PlayerManager.getCoins()) > 0 && PlayerManager.getCoins().compareTo(BigInteger.valueOf(0)) > 0) {
                     updateSpinAmount(PlayerManager.getCoins());
-                    if (spinAmount.compareTo(minimumSpinAmount) < 0) {
-                        updateSpinAmount(minimumSpinAmount);
+                    if (state.stake().compareTo(state.minimumStake()) < 0) {
+                        updateSpinAmount(state.minimumStake());
                     }
                 }
             }
@@ -363,7 +411,7 @@ public class SlotMachine {
         minStakeBtt.setBackground(new Color(0xD4B483));
         minStakeBtt.addActionListener(e -> {
             if (!slotGrid.isFreeSpinsActivated()) {
-                updateSpinAmount(minimumSpinAmount);
+                updateSpinAmount(state.minimumStake());
                 spinAmountLabel.setBorder(BorderFactory.createLineBorder(Color.orange));
 
             }
@@ -382,8 +430,9 @@ public class SlotMachine {
         if (timer != null) {
             timer.stop();
         }
+
         if (changeAutoSpinCheckbox.isSelected()) {
-            currentCooldown = autoCooldown - pet.autoCooldownBonus;
+            currentCooldown = autoCooldown - state.pet().getAutoCooldownBonus();
         } else {
             currentCooldown = manualCooldown;
         }
@@ -400,13 +449,41 @@ public class SlotMachine {
         }
     }
 
+    private void refreshTimerForPet() {
+        if (timer != null) {
+            boolean running = timer.isRunning();
+            updateTimer();
+            if (running) {
+                timer.start();
+            }
+        }
+    }
+
+    /** Locks this machine's purchases and stake controls until free spins finish. */
+    void updateFreeSpinControls() {
+        boolean available = !slotGrid.isFreeSpinsActivated();
+        spinAmountLabel.setEnabled(available);
+        stakeUpBtt.setEnabled(available);
+        stakeDownBtt.setEnabled(available);
+        minStakeBtt.setEnabled(available);
+        maxStakeBtt.setEnabled(available);
+        showUpgrades.setEnabled(available);
+        changeAutoSpinCheckbox.setEnabled(available && autoSpinUnlocked);
+        for (Component component : machinePanel.getComponents()) {
+            if (component instanceof CasinoUpgradeButton button) {
+                button.setEnabled(available);
+            }
+        }
+        upgradeArea.setPurchasesEnabled(available);
+    }
+
     /** Executes the current stake and refreshes the displayed win. */
     private void performSpin() {
         BigInteger wholeSpinWin = BigInteger.valueOf(0);
-        if (spinAmount.compareTo(getMinimumCoinsPerLane()) == 0) {
-            wholeSpinWin = slotGrid.spinSlotMachine(spinAmount);
-        } else if (spinAmount.compareTo(PlayerManager.getCoins()) <= 0 || slotGrid.isFreeSpinsActivated()) {
-            wholeSpinWin = slotGrid.spinSlotMachine(spinAmount);
+        if (state.stake().compareTo(getMinimumCoinsPerLane()) == 0) {
+            wholeSpinWin = slotGrid.spinSlotMachine(state.stake());
+        } else if (state.stake().compareTo(PlayerManager.getCoins()) <= 0 || slotGrid.isFreeSpinsActivated()) {
+            wholeSpinWin = slotGrid.spinSlotMachine(state.stake());
         }
         if (wholeSpinWin.compareTo(BigInteger.valueOf(0)) == 0) {
             winLabel.setVisible(false);
@@ -426,71 +503,73 @@ public class SlotMachine {
                 tier = i;
             }
         }
-        if (pet.petMultis[tier] > pet.getMulti()) {
-            pet.setTier(tier);
-            setPetImage(pet.getIcon());
-            LOGGER.log(Level.FINE, "Won a pet with multiplier {0}", pet.petMultis[tier]);
+        if (Pet.multiplierForTier(tier) > state.pet().getMulti()) {
+            state.pet().setTier(tier);
+            setPetImage(state.pet().getIcon());
+            refreshTimerForPet();
+            LOGGER.log(Level.FINE, "Won a pet with multiplier {0}", Pet.multiplierForTier(tier));
         }
     }
 
     protected void setPetImage(ImageIcon icon) {
         petImageLabel.setVisible(true);
         petImageLabel.setIcon(icon);
-        petImageLabel.setText(pet.getMulti() + "x");
+        petImageLabel.setText(state.pet().getMulti() + "x");
         petImageLabel.setHorizontalTextPosition(SwingConstants.RIGHT);
         petImageLabel.setForeground(Color.orange);
     }
 
     /** Assigns the machine's pet and refreshes the pet indicator. */
     public void setPet(Pet pet) {
-        this.pet = pet;
+        state.setPet(pet);
         petImageLabel.setBackground(Color.white);
         petImageLabel.setVisible(false);
         machinePanel.add(petImageLabel);
         setPetImage(pet.getIcon());
+        refreshTimerForPet();
     }
 
 
     /** Returns the current minimum stake amount. */
     public BigInteger getMinimumCoinsPerLane() {
-        return minimumSpinAmount;
+        return state.minimumStake();
     }
 
     private void increaseMinSpinAmount() {
-        if (minimumSpinAmount.compareTo(BigInteger.valueOf(20)) > 0) {
-            minimumSpinAmount = minimumSpinAmount.add(minimumSpinAmount.divide(BigInteger.valueOf(5)));
+        if (state.minimumStake().compareTo(BigInteger.valueOf(20)) > 0) {
+            state.setMinimumStake(state.minimumStake().add(state.minimumStake().divide(BigInteger.valueOf(5))));
         } else {
-            minimumSpinAmount = minimumSpinAmount.add(BigInteger.valueOf(4));
+            state.setMinimumStake(state.minimumStake().add(BigInteger.valueOf(4)));
         }
-        updateSpinAmount(minimumSpinAmount);
+        updateSpinAmount(state.minimumStake());
         minIncreased++;
     }
 
     private void increaseMaxSpinAmount() {
-        if (maximumSpinAmount.compareTo(BigInteger.valueOf(20)) > 0) {
-            maximumSpinAmount = maximumSpinAmount.add(maximumSpinAmount.divide(BigInteger.valueOf(2)));
+        if (state.maximumStake().compareTo(BigInteger.valueOf(20)) > 0) {
+            state.setMaximumStake(state.maximumStake().add(state.maximumStake().divide(BigInteger.valueOf(2))));
         } else {
-            maximumSpinAmount = maximumSpinAmount.add(BigInteger.valueOf(4));
+            state.setMaximumStake(state.maximumStake().add(BigInteger.valueOf(4)));
         }
         maxIncreased++;
     }
 
     private BigInteger getMaximumAmountPerLane() {
-        return maximumSpinAmount;
+        return state.maximumStake();
     }
 
     private void updateSpinAmount(BigInteger amount) {
-        spinAmount = amount;
-        if (spinAmount.compareTo(minimumSpinAmount) <= 0) {
-            spinAmount = minimumSpinAmount;
+        state.setStake(amount);
+        if (state.stake().compareTo(state.minimumStake()) <= 0) {
+            state.setStake(state.minimumStake());
             spinAmountLabel.setBorder(BorderFactory.createLineBorder(Color.ORANGE));
-        } else if (spinAmount.compareTo(maximumSpinAmount) >= 0) {
-            spinAmount = maximumSpinAmount;
+        } else if (state.stake().compareTo(state.maximumStake()) >= 0) {
+            state.setStake(state.maximumStake());
             spinAmountLabel.setBorder(BorderFactory.createLineBorder(Color.black));
         } else {
             spinAmountLabel.setBorder(BorderFactory.createLineBorder(Color.black));
         }
-        spinAmountLabel.updateFormat(spinAmount);
+        spinAmountLabel.updateFormat(state.stake());
     }
 
 }

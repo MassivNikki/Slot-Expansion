@@ -10,7 +10,7 @@ import java.math.BigInteger;
  * Holds the shared coin balance and keeps its display synchronized with changes.
  */
 public class PlayerManager {
-    private static BigInteger coins;
+    private static final CoinBalance BALANCE = new CoinBalance();
     private static PriceLabel coinAmountLabel;
     private static JFrame mainFrame;
 
@@ -35,21 +35,31 @@ public class PlayerManager {
 
     /** Returns the current shared balance. */
     public static BigInteger getCoins() {
-        return coins;
+        return BALANCE.get();
     }
 
     /** Replaces the balance and refreshes the display. */
     public static void setCoins(BigInteger coins) {
-        PlayerManager.coins = coins;
+        BALANCE.set(coins);
         coinAmountLabel.setCoins(coins);
     }
     public static void decreaseCoins(BigInteger amount) {
-        coins = coins.subtract(amount);
-        coinAmountLabel.setCoins(coins);
+        if (!trySpend(amount)) {
+            throw new IllegalStateException("Insufficient coins");
+        }
     }
 
     public static void increaseCoins(BigInteger amount) {
-        coins = coins.add(amount);
-        coinAmountLabel.setCoins(coins);
+        BALANCE.add(amount);
+        coinAmountLabel.setCoins(BALANCE.get());
+    }
+
+    /** Spends an amount only when affordable, then refreshes the balance display. */
+    public static boolean trySpend(BigInteger amount) {
+        if (!BALANCE.trySpend(amount)) {
+            return false;
+        }
+        coinAmountLabel.setCoins(BALANCE.get());
+        return true;
     }
 }

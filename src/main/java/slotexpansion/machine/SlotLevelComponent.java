@@ -19,8 +19,6 @@ public class SlotLevelComponent extends JComponent {
     private final PriceLabel nextLevelXpLabel = new PriceLabel();
     private final JPanel machinePanel;
     private int progressBarWidth;
-    protected int slotLevel = 0;
-    protected BigInteger slotXp = BigInteger.valueOf(0);
     private BigInteger amountForLevelUp;
     private boolean levelUpCheckActive = false;
     private final SlotMachine machine;
@@ -52,7 +50,7 @@ public class SlotLevelComponent extends JComponent {
         nextLevelXpLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         machinePanel.add(nextLevelXpLabel);
 
-        currentXpLabel.updateFormat(slotXp);
+        currentXpLabel.updateFormat(machine.state.xp());
         currentXpLabel.setForeground(Color.white);
         currentXpLabel.setBounds(progressBar.getX(), 25, 100, 15);
         currentXpLabel.setHorizontalAlignment(SwingConstants.LEFT);
@@ -63,16 +61,15 @@ public class SlotLevelComponent extends JComponent {
 
     /** Sets the displayed level and recalculates its next-level requirement. */
     public void setSlotLevel(int level) {
-        slotLevel = level;
-        machine.slotLevel = slotLevel;
+        machine.state.setLevel(level);
         slotLevelLabel.setText(String.valueOf(level));
         calculateNextLevelXpAmount();
     }
 
     /** Replaces the machine's experience and checks whether it has leveled up. */
     public void setSlotXp(BigInteger xp) {
-        slotXp = xp;
-        currentXpLabel.updateFormat(slotXp);
+        machine.state.setXp(xp);
+        currentXpLabel.updateFormat(machine.state.xp());
         if (!levelUpCheckActive) {
             checkForLevelUp();
         }
@@ -80,8 +77,8 @@ public class SlotLevelComponent extends JComponent {
 
     /** Adds spin experience and processes any levels earned by that amount. */
     public void addXp(BigInteger amount){
-        slotXp = slotXp.add(amount);
-        currentXpLabel.updateFormat(slotXp);
+        machine.state.setXp(machine.state.xp().add(amount));
+        currentXpLabel.updateFormat(machine.state.xp());
         if (!levelUpCheckActive) {
             checkForLevelUp();
         }
@@ -89,29 +86,28 @@ public class SlotLevelComponent extends JComponent {
 
     protected void checkForLevelUp() {
         // Continue leveling while the remaining experience reaches each threshold.
-        while (amountForLevelUp.compareTo(slotXp) <= 0) {
+        while (amountForLevelUp.compareTo(machine.state.xp()) <= 0) {
             levelUpCheckActive = true;
-            slotLevel++;
-            setSlotXp(slotXp.subtract(amountForLevelUp));
+            machine.state.setLevel(machine.state.level() + 1);
+            setSlotXp(machine.state.xp().subtract(amountForLevelUp));
             calculateNextLevelXpAmount();
             machine.choosePetForLevelUp();
-            machine.slotLevel = slotLevel;
         }
         levelUpCheckActive = false;
-        slotLevelLabel.setText(String.valueOf(slotLevel));
+        slotLevelLabel.setText(String.valueOf(machine.state.level()));
         calculateProgressBar();
     }
 
 
     protected void calculateNextLevelXpAmount() {
         // A quadratic threshold keeps early levels attainable while requiring more XP over time.
-        BigInteger level = BigInteger.valueOf(slotLevel);
+        BigInteger level = BigInteger.valueOf(machine.state.level());
         amountForLevelUp = level.multiply(level).multiply(BigInteger.valueOf(200));
         nextLevelXpLabel.updateFormat(amountForLevelUp);
     }
 
     protected void calculateProgressBar() {
-        BigDecimal currentXp = new BigDecimal(slotXp);
+        BigDecimal currentXp = new BigDecimal(machine.state.xp());
         BigDecimal xpThreshold = new BigDecimal(amountForLevelUp);
         BigDecimal progressPercent = currentXp.divide(xpThreshold, 10, RoundingMode.FLOOR).multiply(BigDecimal.valueOf(100));
         progressBar.setValue(progressPercent.intValue());

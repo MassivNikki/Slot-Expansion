@@ -1,140 +1,158 @@
 package slotexpansion.machine;
 
 import slotexpansion.app.Application;
-import slotexpansion.ui.*;
+import slotexpansion.ui.CasinoUpgradeButton;
+import slotexpansion.ui.CustomTabbedPaneUI;
 
 import javax.swing.*;
-import java.awt.*;
+import java.awt.Color;
 import java.math.BigInteger;
-import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.Map;
 
-/**
- * Displays the purchasable upgrades for a single slot machine.
- */
+/** Displays the upgrades for one machine; their effects are handled by UpgradeManager. */
 public class UpgradeArea extends JFrame {
+    enum Upgrade { SEVEN, TIER4, TIER3, TIER2, TIER1, X2, PAYLINE }
 
-    protected final ArrayList<CasinoUpgradeButton> upgradeIncreaseButtons = new ArrayList<>();
-    // Baseline probabilities in the same order as the symbol upgrade controls.
-    protected final int[] symbolOrgChances = SymbolChanceConfig.baseUpgradeChanceLabels();
-    protected BigInteger sevenSymbolPrice = BigInteger.valueOf(800);
-    protected BigInteger tier4SymbolPrice = BigInteger.valueOf(600);
-    protected BigInteger tier3SymbolPrice = BigInteger.valueOf(300);
-    protected BigInteger tier2SymbolPrice = BigInteger.valueOf(150);
-    protected BigInteger x2SymbolPrice = BigInteger.valueOf(1000);
-    protected BigInteger newGridPrice = BigInteger.valueOf(600);
-    public int addedGrids = 0;
-    private final SlotGrid slotGrid;
-    protected final UpgradeManager upgradeManager;
-    private int totalUpgradeAmount = 0;
-    private SlotMachine machine;
-    private JPanel increaseUpgradesPanel = new JPanel(null);
-    private JPanel unlockPanel = new JPanel(null);
-    private JTabbedPane tabs = new JTabbedPane();
+    private final Map<Upgrade, CasinoUpgradeButton> buttons = new EnumMap<>(Upgrade.class);
+    private final Map<Upgrade, Integer> purchases = new EnumMap<>(Upgrade.class);
+    private final SlotGrid grid;
+    private final SlotMachine machine;
+    final UpgradeManager upgradeManager;
+    int addedGrids;
+    private final JPanel increasePanel = new JPanel(null);
+    private final JPanel unlockPanel = new JPanel(null);
+    private final JTabbedPane tabs = new JTabbedPane();
+    private int row;
+    private boolean purchasesEnabled = true;
 
-    public UpgradeArea(SlotGrid slotGrid, SlotMachine machine) {
-        this.slotGrid = slotGrid;
+    public UpgradeArea(SlotGrid grid, SlotMachine machine) {
+        this.grid = grid;
         this.machine = machine;
-        upgradeManager = new UpgradeManager(this.slotGrid, this);
+        upgradeManager = new UpgradeManager(grid, this);
         setSize(350, 300);
-        setLocation(Application.mainFrame.getX() + 35, Application.mainFrame.getY() + machine.machinePanel.getHeight() / 2);
+        setLocation(Application.mainFrame.getX() + 35,
+                Application.mainFrame.getY() + machine.machinePanel.getHeight() / 2);
         setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
         setResizable(false);
         tabs.setUI(new CustomTabbedPaneUI());
         getContentPane().setBackground(Color.darkGray);
+        increasePanel.setBackground(Color.darkGray);
         unlockPanel.setBackground(Color.darkGray);
-        increaseUpgradesPanel.setBackground(Color.darkGray);
-        setTitle("Upgrades for machine " + machine.slotTier);
+        setTitle("Upgrades for machine " + machine.getSlotTier());
     }
 
-    private void addTabs(){
-        tabs.addTab("Increase",increaseUpgradesPanel);
-        tabs.addTab("Unlock",unlockPanel);
-        tabs.setBounds(10,10,300,20);
-        getContentPane().add(tabs);
-    }
-
-    /** Rebuilds the upgrade controls from the machine's currently loaded state. */
+    /** Creates controls from restored state after paylines and chances are loaded. */
     public void initiate() {
         for (int i = 0; i < addedGrids; i++) {
-            slotGrid.addNewWinningGrid(i);
+            grid.addNewWinningGrid(i);
         }
-        addNewIncreaseUpgrade("7 Symbol chance:"
-                , slotGrid.getAdditionalSevenSymbolChance(), symbolOrgChances[0], Application.maxSevenChance, 7, sevenSymbolPrice, "%");
-        addNewIncreaseUpgrade("Tier 4 Symbol chance:"
-                , slotGrid.getAdditionalTier4SymbolChance(), symbolOrgChances[1], Application.maxTier4Chance, 4, tier4SymbolPrice, "%");
-        addNewIncreaseUpgrade("Tier 3 Symbol chance:"
-                , slotGrid.getAdditionalTier3SymbolChance(), symbolOrgChances[2], Application.maxTier3Chance, 3, tier3SymbolPrice, "%");
-        addNewIncreaseUpgrade("Tier 2 Symbol chance:"
-                , slotGrid.getAdditionalTier2SymbolChance(), symbolOrgChances[3], Application.maxTier2Chance, 2, tier2SymbolPrice, "%");
-        addNewIncreaseUpgrade("Tier 1 Symbol chance:"
-                , 0, slotGrid.getTier1SymbolChance(), 0, -1, BigInteger.valueOf(0), "%");
-        addNewIncreaseUpgrade("X2 Symbol chance:"
-                , slotGrid.getAdditionalX2SymbolChance(), symbolOrgChances[5], Application.maxX2Chance, 1, x2SymbolPrice, "%");
-        addNewIncreaseUpgrade("New winning grid:"
-                , addedGrids, slotGrid.getWinningGrids().size() - addedGrids, slotGrid.getWinningGrids().size() - addedGrids + slotGrid.getCurrentAdditionalWinningGrid().size(), 0, newGridPrice, "");
-        totalUpgradeAmount = 0;
-        addTabs();
+        add(Upgrade.SEVEN, "7 Symbol chance:", 800, grid.getAdditionalSevenSymbolChance(),
+                SymbolChanceConfig.BASE_SEVEN_CHANCE, SymbolChanceConfig.MAX_SEVEN_CHANCE,
+                upgradeManager::increaseAdditionalSevenSymbolChance);
+        add(Upgrade.TIER4, "Tier 4 Symbol chance:", 600, grid.getAdditionalTier4SymbolChance(),
+                SymbolChanceConfig.BASE_TIER4_CHANCE, SymbolChanceConfig.MAX_TIER4_CHANCE,
+                upgradeManager::increaseAdditionalTier4SymbolChance);
+        add(Upgrade.TIER3, "Tier 3 Symbol chance:", 300, grid.getAdditionalTier3SymbolChance(),
+                SymbolChanceConfig.BASE_TIER3_CHANCE, SymbolChanceConfig.MAX_TIER3_CHANCE,
+                upgradeManager::increaseAdditionalTier3SymbolChance);
+        add(Upgrade.TIER2, "Tier 2 Symbol chance:", 150, grid.getAdditionalTier2SymbolChance(),
+                SymbolChanceConfig.BASE_TIER2_CHANCE, SymbolChanceConfig.MAX_TIER2_CHANCE,
+                upgradeManager::increaseAdditionalTier2SymbolChance);
+        add(Upgrade.TIER1, "Tier 1 Symbol chance:", 0, 0,
+                grid.getTier1SymbolChance(), 0, null);
+        add(Upgrade.X2, "X2 Symbol chance:", 1000, grid.getAdditionalX2SymbolChance(),
+                SymbolChanceConfig.BASE_X2_CHANCE, SymbolChanceConfig.MAX_X2_CHANCE,
+                upgradeManager::increaseAdditionalX2SymbolChance);
+        add(Upgrade.PAYLINE, "New winning grid:", 600, addedGrids,
+                grid.getWinLanes() - addedGrids,
+                grid.getWinLanes() - addedGrids + grid.getAdditionalPaylineCount(),
+                () -> upgradeManager.addNewWinningGrid(addedGrids));
+        tabs.addTab("Increase", increasePanel);
+        tabs.addTab("Unlock", unlockPanel);
+        getContentPane().add(tabs);
+        updatePurchaseAvailability();
     }
 
-    private void addNewUnlockButton(){
-
-            CasinoUpgradeButton unlockUpgradeBtt = new CasinoUpgradeButton("Unlock tier 2 symbols:", BigInteger.valueOf(10000),machine.slotTier,"unlock",10,10+ totalUpgradeAmount * 20,unlockPanel);
+    private void add(Upgrade kind, String title, int basePrice, int purchased,
+                     int baseline, int maximum, Runnable action) {
+        CasinoUpgradeButton button = new CasinoUpgradeButton(title, BigInteger.valueOf(basePrice),
+                machine.getSlotTier(), "+1", 10, 10 + row++ * 20, increasePanel);
+        buttons.put(kind, button);
+        int priceSteps = kind == Upgrade.PAYLINE ? purchased : purchaseCount(kind);
+        for (int i = 0; i < priceSteps; i++) {
+            button.increasePrice();
+        }
+        String suffix = kind == Upgrade.PAYLINE ? "" : "%";
+        button.setChanceLabelText(kind == Upgrade.TIER1 ? baseline + "%"
+                : (baseline + purchased) + "/" + maximum + suffix);
+        if (purchased >= maximum - baseline) {
+            button.disableUpgradable();
+        }
+        if (action != null) {
+            button.addCustomActionListener(ignored -> {
+                action.run();
+                if (kind != Upgrade.PAYLINE) {
+                    purchases.merge(kind, 1, Integer::sum);
+                }
+                updatePurchaseAvailability();
+            });
+        }
+        increasePanel.add(button);
     }
 
-    private void addNewIncreaseUpgrade(String upgradeInfo, int symbolAdditionalChance, int originalChance, int maxChance, int winSymbol, BigInteger price, String kind) {
-        upgradeIncreaseButtons.add(new CasinoUpgradeButton(upgradeInfo, price, machine.slotTier, "+1", 10, 10 + totalUpgradeAmount * 20, increaseUpgradesPanel));
-        CasinoUpgradeButton currentButton = upgradeIncreaseButtons.getLast();
-        for (int i = 0; i < symbolAdditionalChance; i++) {
-            currentButton.increasePrice();
-        }
-        currentButton.setChanceLabelText(symbolAdditionalChance + originalChance + "/" + maxChance + kind);
-        if (symbolAdditionalChance == maxChance - originalChance) {
-            currentButton.disableUpgradable();
-        }
-        determineUpgradeMethod(currentButton, winSymbol);
-        increaseUpgradesPanel.add(currentButton);
-        totalUpgradeAmount++;
+    CasinoUpgradeButton button(Upgrade upgrade) {
+        return buttons.get(upgrade);
     }
 
-    private void determineUpgradeMethod(CasinoUpgradeButton btt, int symbol) {
-        switch (symbol) {
-            case 10:
-                btt.addCustomActionListener(e -> {
-                    upgradeManager.increaseAdditionalSevenSymbolChance();
-                });
-                // Both symbol identifiers use the seven-symbol chance upgrade.
-            case 7:
-                btt.addCustomActionListener(e -> {
-                    upgradeManager.increaseAdditionalSevenSymbolChance();
-                });
-                break;
-            case 4:
-                btt.addCustomActionListener(e -> {
-                    upgradeManager.increaseAdditionalTier4SymbolChance();
-                });
-                break;
-            case 3:
-                btt.addCustomActionListener(e -> {
-                    upgradeManager.increaseAdditionalTier3SymbolChance();
-                });
-                break;
-            case 2:
-                btt.addCustomActionListener(e -> {
-                    upgradeManager.increaseAdditionalTier2SymbolChance();
-                });
-                break;
-            case 1:
-                btt.addCustomActionListener(e -> {
-                    upgradeManager.increaseAdditionalX2SymbolChance();
-                });
-                break;
-            case 0:
-                btt.addCustomActionListener(e -> {
-                    upgradeManager.addNewWinningGrid(addedGrids);
-                });
-                break;
+    void setPurchasesEnabled(boolean enabled) {
+        purchasesEnabled = enabled;
+        updatePurchaseAvailability();
+    }
+
+    int purchaseCount(Upgrade upgrade) {
+        return purchases.getOrDefault(upgrade, 0);
+    }
+
+    void restorePurchaseCounts(MachineSave state) {
+        purchases.put(Upgrade.SEVEN, state.sevenPurchases());
+        purchases.put(Upgrade.TIER4, state.tier4Purchases());
+        purchases.put(Upgrade.TIER3, state.tier3Purchases());
+        purchases.put(Upgrade.TIER2, state.tier2Purchases());
+        purchases.put(Upgrade.X2, state.x2Purchases());
+    }
+
+    void updatePurchaseAvailability() {
+        for (Map.Entry<Upgrade, CasinoUpgradeButton> entry : buttons.entrySet()) {
+            Upgrade kind = entry.getKey();
+            boolean available = kind == Upgrade.PAYLINE || (kind != Upgrade.TIER1 && upgradeManager.canIncrease(kind));
+            entry.getValue().setEnabled(purchasesEnabled && available);
         }
     }
 
+    void resetForGridExpansion() {
+        addedGrids = 0;
+        purchases.clear();
+        for (CasinoUpgradeButton button : buttons.values()) {
+            button.resetPrice();
+            button.enableUpgradable();
+        }
+        button(Upgrade.SEVEN).setChanceLabelText(SymbolChanceConfig.BASE_SEVEN_CHANCE + "/" + SymbolChanceConfig.MAX_SEVEN_CHANCE + "%");
+        button(Upgrade.TIER4).setChanceLabelText(SymbolChanceConfig.BASE_TIER4_CHANCE + "/" + SymbolChanceConfig.MAX_TIER4_CHANCE + "%");
+        button(Upgrade.TIER3).setChanceLabelText(SymbolChanceConfig.BASE_TIER3_CHANCE + "/" + SymbolChanceConfig.MAX_TIER3_CHANCE + "%");
+        button(Upgrade.TIER2).setChanceLabelText(SymbolChanceConfig.BASE_TIER2_CHANCE + "/" + SymbolChanceConfig.MAX_TIER2_CHANCE + "%");
+        button(Upgrade.TIER1).setChanceLabelText(grid.getTier1SymbolChance() + "%");
+        button(Upgrade.X2).setChanceLabelText(SymbolChanceConfig.BASE_X2_CHANCE + "/" + SymbolChanceConfig.MAX_X2_CHANCE + "%");
+        updatePaylineLabel();
+        updatePurchaseAvailability();
+    }
 
+    void updatePaylineLabel() {
+        int base = grid.getWinLanes() - addedGrids;
+        button(Upgrade.PAYLINE).setChanceLabelText(grid.getWinLanes() + "/"
+                + (base + grid.getAdditionalPaylineCount()));
+        if (addedGrids == grid.getAdditionalPaylineCount()) {
+            button(Upgrade.PAYLINE).disableUpgradable();
+        }
+    }
 }

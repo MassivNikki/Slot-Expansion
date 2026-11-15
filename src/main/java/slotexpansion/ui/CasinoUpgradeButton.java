@@ -1,6 +1,6 @@
 package slotexpansion.ui;
 
-import slotexpansion.player.PlayerManager;
+import slotexpansion.machine.UpgradePurchase;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,6 +14,7 @@ import java.util.function.Consumer;
 public class CasinoUpgradeButton extends CasinoButton {
     int position;
     private PriceLabel priceLabel = new PriceLabel();
+    private UpgradePurchase purchase;
     private JLabel chanceLabel = new JLabel();
     private Timer backToOrgColor = new Timer(500, e ->  {
         colorBackground();
@@ -29,8 +30,9 @@ public class CasinoUpgradeButton extends CasinoButton {
             upgradeInfoLabel.setBounds(startX, startY, 150, 20);
             frame.add(upgradeInfoLabel);
         }
-        priceLabel = new PriceLabel(price, slotTier);
-        priceLabel.updateFormat(priceLabel.getPrice());
+        purchase = new UpgradePurchase(price, slotTier);
+        priceLabel = new PriceLabel();
+        refreshPrice();
         priceLabel.setBounds(startX + 250, startY, 50, 20);
         frame.add(priceLabel);
         if (price.compareTo(BigInteger.valueOf(0)) == 0) {
@@ -47,8 +49,9 @@ public class CasinoUpgradeButton extends CasinoButton {
         super(increment);
         position = priceLabelPosition;
         colorBackground();
-        priceLabel = new PriceLabel(price, slotTier);
-        priceLabel.updateFormat(priceLabel.getPrice());
+        purchase = new UpgradePurchase(price, slotTier);
+        priceLabel = new PriceLabel();
+        refreshPrice();
         frame.add(priceLabel);
         if (price.compareTo(BigInteger.valueOf(0)) == 0) {
             disableUpgradable();
@@ -86,13 +89,12 @@ public class CasinoUpgradeButton extends CasinoButton {
     /** Adds a purchase listener around an upgrade-specific action. */
     public void addCustomActionListener(Consumer<CasinoUpgradeButton> customAction) {
         this.addActionListener(e -> {
-            // Check affordability before changing the balance or upgrade state.
-            if (enoughCoins()) {
-                PlayerManager.decreaseCoins(getPrice());
-                increasePrice();
-                // Run the behavior supplied for this particular upgrade.
+            if (purchase.purchase(() -> {
+                refreshPrice();
                 customAction.accept(CasinoUpgradeButton.this);
-            }else{
+            })) {
+                return;
+            } else {
                 notEnoughCoins();
             }
         });
@@ -107,10 +109,6 @@ public class CasinoUpgradeButton extends CasinoButton {
         setBackground(new Color(0x2dce98));
     }
 
-    public CasinoUpgradeButton() {
-        super("test");
-    }
-
     /** Hides this control and its price when no further purchases are available. */
     public void disableUpgradable() {
         priceLabel.setVisible(false);
@@ -119,32 +117,33 @@ public class CasinoUpgradeButton extends CasinoButton {
 
     /** Restores visibility when this upgrade still has a nonzero price. */
     public void enableUpgradable() {
-        if (priceLabel.getPrice().compareTo(BigInteger.valueOf(0)) > 0) {
+        if (getPrice().signum() > 0) {
             priceLabel.setVisible(true);
             setVisible(true);
         }
     }
-    public boolean enoughCoins(){
-        return priceLabel.getPrice().compareTo(PlayerManager.getCoins()) <= 0;
+    public void increasePrice() {
+        purchase.advancePrice();
+        refreshPrice();
     }
 
-    public void increasePrice() {
-        priceLabel.increasePrice();
+    /** Resets the cost when a grid expansion resets this upgrade. */
+    public void resetPrice() {
+        purchase.resetPrice();
+        refreshPrice();
+    }
+
+    private void refreshPrice() {
+        priceLabel.updateFormat(purchase.currentPrice());
+        priceLabel.resizeLabel();
     }
 
     public BigInteger getPrice() {
-        return priceLabel.getPrice();
+        return purchase.currentPrice();
     }
 
     public void setChanceLabelText(String text) {
         chanceLabel.setText(text);
     }
 
-    public String getChanceLabelText() {
-        return chanceLabel.getText();
-    }
-
-    public void getChanceLabelText(String text) {
-        chanceLabel.setText(text);
-    }
 }

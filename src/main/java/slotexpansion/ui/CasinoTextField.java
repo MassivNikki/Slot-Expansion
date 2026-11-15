@@ -23,13 +23,13 @@ public class CasinoTextField extends JTextField {
     public BigInteger getAmount() {
         String value = getText();
         BigInteger amount;
-        if (value.contains("e")) {
+        if (spinAmount != null && value.equals(spinAmount.compareTo(BigInteger.valueOf(10000)) >= 0
+                ? PriceLabel.getFormat().format(spinAmount) : spinAmount.toString())) {
+            return spinAmount;
+        }
+        if (value.contains("e") || value.contains("E")) {
             // Split scientific notation into its base and exponent.
-            String[] parts = value.split("e");
-            BigDecimal base = new BigDecimal(parts[0]);
-            int exponent = Integer.parseInt(parts[1]);
-            // Convert the formatted value back to an integer amount.
-            amount = base.multiply(BigDecimal.TEN.pow(exponent)).toBigInteger();
+            amount = new BigDecimal(value).toBigIntegerExact();
         } else {
             amount = new BigInteger(getText());
         }
