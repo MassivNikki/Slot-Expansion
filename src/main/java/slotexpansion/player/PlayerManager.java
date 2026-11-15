@@ -23,14 +23,10 @@ public class PlayerManager {
 
     private static void generateCoinStuff() {
         coinAmountLabel = new PriceLabel();
-        coinAmountLabel.setFont(new Font("Arial", Font.BOLD, 20));
-        setSizeToMainFrameSize();
+        coinAmountLabel.setFont(new Font("Arial", Font.BOLD, 30));
+        coinAmountLabel.setPreferredSize(new Dimension(0, 60));
         coinAmountLabel.setForeground(Color.ORANGE);
-        mainFrame.add(coinAmountLabel);
-    }
-    /** Resizes the balance display to match the current window width. */
-    public static void setSizeToMainFrameSize(){
-        coinAmountLabel.setBounds(0,20,mainFrame.getSize().width-16,20);
+        mainFrame.add(coinAmountLabel, BorderLayout.NORTH);
     }
 
     /** Returns the current shared balance. */

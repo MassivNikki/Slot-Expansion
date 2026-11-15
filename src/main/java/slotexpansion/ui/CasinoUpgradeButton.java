@@ -34,12 +34,13 @@ public class CasinoUpgradeButton extends CasinoButton {
         priceLabel = new PriceLabel();
         refreshPrice();
         priceLabel.setBounds(startX + 250, startY, 50, 20);
+        priceLabel.resizeLabel();
         frame.add(priceLabel);
         if (price.compareTo(BigInteger.valueOf(0)) == 0) {
             disableUpgradable();
         }
         chanceLabel.setForeground(Color.white);
-        chanceLabel.setBounds(startX + 160, startY, 40, 20);
+        chanceLabel.setBounds(startX + 155, startY, 50, 20);
         frame.add(chanceLabel);
         setMargin(new Insets(0, 0, 0, 0));
         backToOrgColor.setRepeats(false);
@@ -65,7 +66,7 @@ public class CasinoUpgradeButton extends CasinoButton {
         super.setBounds(x, y, width, height);
         switch (position) {
             case -1:
-                priceLabel.setBounds(x, y - 20, width, 20);
+                priceLabel.setBounds(x, y + height - 20, width, 20);
                 priceLabel.setHorizontalAlignment(SwingConstants.CENTER);
                 break;
             case 0:
@@ -76,6 +77,7 @@ public class CasinoUpgradeButton extends CasinoButton {
                 priceLabel.setHorizontalAlignment(SwingConstants.CENTER);
                 break;
         }
+        priceLabel.resizeLabel();
     }
 
     public void removeFromMainframe(JFrame frame) {

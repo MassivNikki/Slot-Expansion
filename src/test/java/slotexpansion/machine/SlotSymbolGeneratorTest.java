@@ -89,4 +89,30 @@ class SlotSymbolGeneratorTest {
         assertEquals(10, sevens);
         assertEquals(2, generator.getAdditionalX2SymbolChance());
     }
+
+    @Test
+    void lockedBandsBecomeTierOneWithoutChangingOtherBands() {
+        FixedRandom random = new FixedRandom();
+        SlotSymbolGenerator generator = new SlotSymbolGenerator(random);
+        for (int mask = 0; mask < 16; mask++) {
+            int tier1 = 0, tier2 = 0, tier3 = 0, tier4 = 0, sevens = 0, thunder = 0;
+            for (int roll = 0; roll < 100; roll++) {
+                random.chance = roll;
+                int symbol = generator.rollSymbol(1, 3, 13,
+                        (mask & 8) != 0, (mask & 4) != 0, (mask & 2) != 0, (mask & 1) != 0, false);
+                if (symbol >= 1 && symbol <= 3) tier1++;
+                if (symbol >= 4 && symbol <= 6) tier2++;
+                if (symbol >= 7 && symbol <= 8) tier3++;
+                if (symbol >= 9 && symbol <= 10) tier4++;
+                if (symbol == 11) sevens++;
+                if (symbol == 0) thunder++;
+            }
+            assertEquals((mask & 1) != 0 ? 20 : 0, tier2);
+            assertEquals((mask & 2) != 0 ? 12 : 0, tier3);
+            assertEquals((mask & 4) != 0 ? 6 : 0, tier4);
+            assertEquals((mask & 8) != 0 ? 3 : 0, sevens);
+            assertEquals(92 - tier2 - tier3 - tier4 - sevens, tier1);
+            assertEquals(6, thunder);
+        }
+    }
 }

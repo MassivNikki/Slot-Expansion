@@ -29,9 +29,12 @@ Swing windows and therefore require a graphical desktop (or a virtual display).
   experience to that machine.
 - During free spins, that machine's stake and upgrade controls are locked.
   Other machines can still be used. The x2 bonus is temporary.
-- Sevens have a 3% base chance in every column. The x2 symbol only appears in
+- Unlocked sevens have a 3% base chance in every column. The x2 symbol only appears in
   interior columns; on edge columns its probability is assigned to tier-one
   symbols instead.
+- Tier-two, tier-three, tier-four, and seven symbols are purchased separately
+  for each machine, in any order. Until unlocked, their rolls become tier-one
+  symbols. Unlock prices scale with the machine's tier.
 - Machine levels can award a pet. Pets multiply that machine's payouts, and
   higher-tier pets can also shorten its automatic-spin cooldown.
 - Coin-funded upgrades can change symbol odds, add paylines, increase the grid
@@ -43,8 +46,18 @@ Swing windows and therefore require a graphical desktop (or a virtual display).
 
 Use **Spin** for a single spin or select **Auto** to repeat spins using the
 displayed cooldown. Set the stake with the amount field, the up/down controls,
-or the **min** and **max** buttons. **Upgrades** opens that machine's purchase
-window; the grid-size upgrade is beside the grid.
+or the **min** and **max** buttons. Each machine's upgrade panel sits below its
+grid: **Increase** improves chances, while **Unlock** buys symbol tiers and
+paylines. The grid-size upgrade is beside the grid. The window grows with the
+machines and can extend beyond the display; position it as needed. On Windows,
+the native window height limit can clip the layout, so the machine positions
+may need adjustment.
+
+Amounts use four digits, truncating extra digits without changing the exact
+value: for example, `1.000t`, `12.34M`, and `100.0T`. After `Dc`, suffixes
+continue from `aa` through `zz`, then switch to scientific notation. The stake
+field accepts these suffixes or scientific notation as well as whole numbers.
+An unchanged abbreviated stake keeps its exact stored value.
 
 The symbol and pet artwork is stored in `SlotImages/` and `pets/`.
 
@@ -67,7 +80,7 @@ src/main/java/
 | Symbol odds or special symbols | `SymbolChanceConfig` and `SlotSymbolGenerator` | `UpgradeManager` changes the same chance bands; `UpgradeArea` displays them. |
 | Paylines | `SlotPaylineLayouts` | Each row-major mask must select one cell per column. `PaylineEvaluator` evaluates matching prefixes. |
 | Payouts or free-spin awards | `PaylineEvaluator` or `SpinCalculator` | `SlotGrid` applies the result to the balance and displays its winning lines. |
-| A machine upgrade | `UpgradeArea` and `UpgradeManager` | Define its cost and control, apply its effect, and include persistent state in `MachineSave` if needed. |
+| A machine upgrade | `UpgradeArea` and `UpgradeManager` | Define its cost and control, apply its effect, and include persistent state in `MachineSave` if needed. Symbol unlocks are stored in `MachineState`. |
 | Levels or pets | `SlotLevelComponent` and `Pet` | `SlotMachine` chooses pets and refreshes the auto-spin timer. |
 | Save data | `MachineSave` and `SaveRepository` | `SlotMachine.snapshot` and `restore` translate between saved records and the live machine. |
 | Appearance or controls | `SlotMachine`, `SlotGrid`, and `ui` | Game calculations live in the machine classes above, not the custom Swing painters. |
@@ -83,11 +96,14 @@ and `max(1, level / 2)` with integer division. The minimum stake remains free.
 Each chance upgrade takes probability from the lowest available lower tier.
 When no lower tier remains, that upgrade is disabled. A grid expansion resets
 chance upgrades, extra paylines, their purchase prices, and the pet.
+It also locks the symbol tiers again. Chance upgrades for a tier are available
+only after that tier is unlocked.
 
-`SaveRepository` reads old 17-field records as well as current 22-field
+`SaveRepository` reads old 17- and 22-field records as well as current 23-field
 records. The extra fields retain purchase counts even when an upgrade's chance
 has been reduced by another upgrade. Older saves did not record that history,
-so their price counts are estimated from remaining upgrades. Writes use a
+so their price counts are estimated from remaining upgrades. Older saves start
+with symbol tiers locked but retain their existing chance upgrades. Writes use a
 temporary file and an atomic replacement. Active free spins and animation are
 not saved; the permanent upgrade values are.
 

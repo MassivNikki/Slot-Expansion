@@ -31,10 +31,20 @@ class SaveRepositoryTest {
     void extendedRecordsPreservePurchaseCountsAfterOddsAreReallocated() throws IOException {
         MachineSave original = new MachineSave(BigInteger.TEN, 1, BigInteger.ZERO,
                 0, 0, 3, 1, 0, 0, 0, -1, 3, 1000, 500, false, 0, 0,
-                0, 0, 3, 2, 0);
+                0, 0, 3, 2, 0, 5);
         SaveRepository repository = new SaveRepository(directory.resolve("SaveData"));
         repository.save(List.of(original));
         assertEquals(List.of(original), repository.load());
+    }
+
+    @Test
+    void oldRecordsStartWithSymbolsLocked() {
+        MachineSave legacy = MachineSave.parse("1234,4,10,1,2,3,4,40,1,2,3,5,800,400,true,2,3");
+        MachineSave previous = MachineSave.parse(legacy.toCsv().substring(0, legacy.toCsv().lastIndexOf(',')));
+        assertEquals(0, legacy.unlockedSymbols());
+        assertEquals(0, previous.unlockedSymbols());
+        assertThrows(IllegalArgumentException.class,
+                () -> MachineSave.parse(legacy.toCsv().substring(0, legacy.toCsv().lastIndexOf(',')) + ",16"));
     }
 
     @Test

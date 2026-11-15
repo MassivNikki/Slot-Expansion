@@ -3,7 +3,7 @@ import javax.swing.*;
 import javax.swing.plaf.basic.BasicTabbedPaneUI;
 import java.awt.*;
 
-/** Draws the upgrade window's tabs with the game's rounded color treatment. */
+/** Draws the upgrade panel's tabs with the game's rounded color treatment. */
 public class CustomTabbedPaneUI extends BasicTabbedPaneUI {
 
     @Override

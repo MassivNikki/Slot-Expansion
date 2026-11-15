@@ -21,7 +21,7 @@ public final class SaveRepository {
                     + "additionalTier3SymbolChance,additionalTier2SymbolChance,tier1SymbolChance,"
                     + "additionalX2SymbolChance,addedPaylines,petTier,columnCount,autoCooldown,"
                     + "manualCooldown,autoSpinUnlocked,minStakeUpgrades,maxStakeUpgrades,"
-                    + "sevenPurchases,tier4Purchases,tier3Purchases,tier2Purchases,x2Purchases";
+                    + "sevenPurchases,tier4Purchases,tier3Purchases,tier2Purchases,x2Purchases,unlockedSymbols";
     private final Path path;
 
     /**

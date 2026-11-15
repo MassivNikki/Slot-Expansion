@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,21 +24,28 @@ import java.util.Map;
  */
 public class Application {
     private static final Map<IconKey, ImageIcon> ICON_CACHE = new HashMap<>();
+    private static final int MACHINE_ROW_HEIGHT = 470;
+    private static final int MACHINE_HEIGHT = 470;
     private final ArrayList<JPanel> machinePanels = new ArrayList<>();
-    private final SaveRepository saveRepository = new SaveRepository(Path.of("SaveData"));
+    private final JPanel machineCanvas = new JPanel(null);
+    private final SaveRepository saveRepository;
     public static JFrame mainFrame;
     private BigInteger machinePurchasePrice = BigInteger.valueOf(100000);
     private int machineCount = 0;
-    private final ArrayList<Integer> machineYPositions = new ArrayList<>(Arrays.asList(60, 60, 60, 60, 550, 550, 550, 550));
-    private final ArrayList<Integer> machineXPositions = new ArrayList<>(Arrays.asList(10, 420, 830, 1240, 10, 420, 830, 1240));
-
     private final ArrayList<SlotMachine> machines;
 
     private record IconKey(String folder, String name, int size) {
     }
 
     public Application() {
+        this(new SaveRepository(Path.of("SaveData")));
+    }
+
+    Application(SaveRepository saveRepository) {
+        this.saveRepository = saveRepository;
         mainFrame = new MainFrame();
+        machineCanvas.setBackground(Color.decode("#04396E"));
+        mainFrame.add(machineCanvas, BorderLayout.CENTER);
         mainFrame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -126,33 +132,38 @@ public class Application {
     private void resizeMainFrame() {
         int columns = Math.min(machineCount, 4);
         int rows = (machineCount + 3) / 4;
-        mainFrame.setSize(machineXPositions.get(columns - 1) + 500, rows == 1 ? 550 : 1040);
-        PlayerManager.setSizeToMainFrameSize();
+        int contentWidth = 10 + (columns - 1) * 410 + 500;
+        int contentHeight = (rows - 1) * MACHINE_ROW_HEIGHT + MACHINE_HEIGHT + 20;
+        machineCanvas.setPreferredSize(new Dimension(contentWidth, contentHeight));
+        machineCanvas.revalidate();
+        mainFrame.pack();
     }
 
     private void createMachine(int machineIndex) {
         machinePanels.add(new JPanel());
         JPanel currentMachinePanel = machinePanels.getLast();
-        currentMachinePanel.setBounds(machineXPositions.get(machineIndex), machineYPositions.get(machineIndex), 400, 450);
+        int x = 10 + (machineIndex % 4) * 410;
+        int y = (machineIndex / 4) * MACHINE_ROW_HEIGHT;
+        currentMachinePanel.setBounds(x, y, 400, MACHINE_HEIGHT);
         currentMachinePanel.setBackground(null);
         currentMachinePanel.setLayout(null);
         machines.add(new SlotMachine(machinePanels.getLast(), machines.size() + 1));
         if (machines.size() == machineCount && machineCount < 8) {
             CasinoUpgradeButton newMachineButton =
                     new CasinoUpgradeButton(machinePurchasePrice, machines.getLast().getSlotTier(), "<html>Add<br>New<br>Machine</html>"
-                            , mainFrame, PriceLabelPosition.UNDER);
+                            , machineCanvas, PriceLabelPosition.UNDER);
             newMachineButton.addCustomActionListener(e -> {
                 machineCount++;
                 resizeMainFrame();
                 machinePurchasePrice = newMachineButton.getPrice();
                 createMachine(machineCount - 1);
                 machines.get(machineCount - 1).updateComponentsWithData();
-                newMachineButton.removeFromMainframe(mainFrame);
-                mainFrame.repaint();
+                newMachineButton.removeFromMachinePanel(machineCanvas);
+                machineCanvas.repaint();
             });
-            newMachineButton.setBounds(machineXPositions.get(machineIndex) + 420, machineYPositions.get(machineIndex) + 165, 60, 80);
-            mainFrame.add(newMachineButton);
+            newMachineButton.setBounds(x + 420, y + 165, 60, 80);
+            machineCanvas.add(newMachineButton);
         }
-        mainFrame.add(currentMachinePanel);
+        machineCanvas.add(currentMachinePanel);
     }
 }

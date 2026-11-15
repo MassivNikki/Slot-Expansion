@@ -9,6 +9,13 @@ import java.util.List;
  * The slot grid uses the same state to calculate and display each spin.
  */
 final class MachineState {
+    enum SymbolTier {
+        TIER2(1), TIER3(2), TIER4(4), SEVEN(8);
+
+        final int bit;
+        SymbolTier(int bit) { this.bit = bit; }
+    }
+
     private final SlotSymbolGenerator symbolGenerator;
     private BigInteger stake = BigInteger.ONE;
     private BigInteger minimumStake = BigInteger.valueOf(5);
@@ -18,6 +25,7 @@ final class MachineState {
     private Pet pet;
     private int freeSpins;
     private int columns = 3;
+    private int unlockedSymbols;
     private List<int[]> paylines = SlotPaylineLayouts.baseForColumnCount(3);
     private List<int[]> optionalPaylines = SlotPaylineLayouts.additionalForColumnCount(3);
 
@@ -40,6 +48,10 @@ final class MachineState {
     void setPet(Pet value) { pet = value; }
     int freeSpins() { return freeSpins; }
     boolean hasFreeSpins() { return freeSpins > 0; }
+    boolean isUnlocked(SymbolTier tier) { return (unlockedSymbols & tier.bit) != 0; }
+    void unlock(SymbolTier tier) { unlockedSymbols |= tier.bit; }
+    int unlockedSymbols() { return unlockedSymbols; }
+    void setUnlockedSymbols(int value) { unlockedSymbols = value; }
     void consumeFreeSpin() { freeSpins--; }
     void awardFreeSpins(int amount) { freeSpins += amount; }
     int columns() { return columns; }

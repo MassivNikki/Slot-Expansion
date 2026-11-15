@@ -39,7 +39,7 @@ public class SlotMachine {
     private final JLabel petImageLabel = new JLabel();
     private final JCheckBox changeAutoSpinCheckbox = new JCheckBox("Auto");
     private final CasinoTextField spinAmountLabel = new CasinoTextField();
-    private final JLabel winLabel = new JLabel();
+    private final PriceLabel winLabel = new PriceLabel();
     private final CasinoButton stakeUpBtt = new CasinoButton("\uD83D\uDD3C");
     private final CasinoButton stakeDownBtt = new CasinoButton("\uD83D\uDD3D");
     private final CasinoButton maxStakeBtt = new CasinoButton("max");
@@ -49,7 +49,6 @@ public class SlotMachine {
     private CasinoUpgradeButton manualCooldownUpgradeButton;
     private CasinoUpgradeButton autoCooldownUpgradeButton;
     private CasinoUpgradeButton autoSpinUnlockButton;
-    private CasinoButton showUpgrades;
     protected CasinoUpgradeButton addColumnUpgradeButton;
     private final Border normalBorder = BorderFactory.createLineBorder(Color.black);
 
@@ -114,7 +113,7 @@ public class SlotMachine {
         spinBtt.setBounds(machinePanel.getWidth() / 2 - 50, 70, 100, 50);
         petImageLabel.setBounds(30, 75, 80, 40);
         changeAutoSpinCheckbox.setBounds(spinBtt.getX() + spinBtt.getWidth() + 10, 70, 50, 20);
-        winLabel.setBounds(170, 145, 100, 30);
+        winLabel.setBounds(45, 125, 100, 30);
         if (manualCooldownUpgradeButton != null) {
             manualCooldownUpgradeButton.setBounds(spinBtt.getX(), spinBtt.getY() + spinBtt.getHeight() + 5, 40, 20);
         }
@@ -143,7 +142,7 @@ public class SlotMachine {
                 upgradeArea.purchaseCount(UpgradeArea.Upgrade.TIER4),
                 upgradeArea.purchaseCount(UpgradeArea.Upgrade.TIER3),
                 upgradeArea.purchaseCount(UpgradeArea.Upgrade.TIER2),
-                upgradeArea.purchaseCount(UpgradeArea.Upgrade.X2));
+                upgradeArea.purchaseCount(UpgradeArea.Upgrade.X2), state.unlockedSymbols());
     }
 
     /** Restores the grid before its odds because grid expansion resets odds. */
@@ -151,6 +150,7 @@ public class SlotMachine {
         slotLevelComponent.setSlotLevel(state.level());
         slotLevelComponent.setSlotXp(state.xp());
         slotGrid.setColumnCount(state.columns());
+        this.state.setUnlockedSymbols(state.unlockedSymbols());
         slotGrid.setAdditionalSevenSymbolChance(state.sevenChance());
         slotGrid.setAdditionalTier4SymbolChance(state.tier4Chance());
         slotGrid.setAdditionalTier3SymbolChance(state.tier3Chance());
@@ -173,18 +173,15 @@ public class SlotMachine {
         setupSpinButton();
         setupStakeButtons();
         setupGridSizeUpgrade();
-        showUpgrades = new CasinoButton("Upgrades");
-        showUpgrades.setBounds(machinePanel.getWidth() / 2 - 75, 350, 150, 50);
-        showUpgrades.addActionListener(e -> upgradeArea.setVisible(true));
-        showUpgrades.setBackground(new Color(0x2dce98));
-        machinePanel.add(showUpgrades);
+        upgradeArea.setBounds(20, 305, 370, 160);
+        machinePanel.add(upgradeArea);
     }
 
     private void setupGridSizeUpgrade() {
         addColumnUpgradeButton =
-                new CasinoUpgradeButton(columnUpgradePrice, slotTier, "+1 Column",
-                        machinePanel, PriceLabelPosition.UNDER);
-        addColumnUpgradeButton.setBounds(75 + 50 * slotGrid.getColumnCount(), 170, 50, 150);
+                new CasinoUpgradeButton(columnUpgradePrice, slotTier, "+1",
+                        machinePanel, PriceLabelPosition.INSIDE);
+        addColumnUpgradeButton.setBounds(75 + 50 * slotGrid.getColumnCount(), 150, 50, 150);
         addColumnUpgradeButton.addCustomActionListener(e -> {
             if (slotGrid.getColumnCount() < 5) {
                 upgradeArea.upgradeManager.upgradeGrid();
@@ -222,7 +219,7 @@ public class SlotMachine {
         if (slotGrid.getColumnCount() == 5) {
             addColumnUpgradeButton.removeFromMachinePanel(machinePanel);
         } else {
-            addColumnUpgradeButton.setBounds(75 + 50 * slotGrid.getColumnCount(), 170, 50, 150);
+            addColumnUpgradeButton.setBounds(75 + 50 * slotGrid.getColumnCount(), 150, 50, 150);
         }
         machinePanel.repaint();
     }
@@ -231,7 +228,7 @@ public class SlotMachine {
         if (!autoSpinUnlocked) {
             autoSpinUnlockButton =
                     new CasinoUpgradeButton(BigInteger.valueOf(10000), slotTier, "<html>Unlock<br>AutoSpin</html>",
-                            machinePanel, PriceLabelPosition.UNDER);
+                            machinePanel, PriceLabelPosition.INSIDE);
             autoSpinUnlockButton.addCustomActionListener(e -> {
                 autoSpinUnlocked = true;
                 changeAutoSpinCheckbox.setEnabled(true);
@@ -467,8 +464,6 @@ public class SlotMachine {
         stakeDownBtt.setEnabled(available);
         minStakeBtt.setEnabled(available);
         maxStakeBtt.setEnabled(available);
-        showUpgrades.setEnabled(available);
-        changeAutoSpinCheckbox.setEnabled(available && autoSpinUnlocked);
         for (Component component : machinePanel.getComponents()) {
             if (component instanceof CasinoUpgradeButton button) {
                 button.setEnabled(available);
@@ -489,7 +484,7 @@ public class SlotMachine {
             winLabel.setVisible(false);
         } else {
             slotLevelComponent.addXp(wholeSpinWin);
-            winLabel.setText(String.valueOf(wholeSpinWin));
+            winLabel.setCoins(wholeSpinWin);
             winLabel.setVisible(true);
         }
     }

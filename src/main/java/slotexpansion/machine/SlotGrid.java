@@ -2,6 +2,7 @@ package slotexpansion.machine;
 
 import slotexpansion.app.Application;
 import slotexpansion.player.PlayerManager;
+import slotexpansion.ui.PriceLabel;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -26,13 +27,8 @@ public class SlotGrid {
     private final ArrayList<String> imageNames = new ArrayList<>(
             Arrays.asList("donner", "jack", "queen", "king", "kirsche", "orange", "zitrone", "leaf", "bell", "bar", "stern", "seven", "x2"));
 
-    protected boolean tier2SymbolsUnlocked = true;
-    protected boolean tier3SymbolsUnlocked = true;
-    protected boolean tier4SymbolsUnlocked = true;
-    protected boolean sevenSymbolsUnlocked = true;
-
     private final JLabel freeSpinsLabel;
-    private final JLabel currentPayoutLaneLabel;
+    private final PriceLabel currentPayoutLaneLabel;
     private final SlotMachine machine;
     private final int[] tier3SlotGrid = new int[15];
     private final int[] tier2SlotGrid = new int[12];
@@ -42,8 +38,8 @@ public class SlotGrid {
     private final ArrayList<ImageIcon> icons = new ArrayList<>();
     private final Border normalBorder = BorderFactory.createLineBorder(Color.black);
     private final Border winningLineBorder = BorderFactory.createLineBorder(Color.YELLOW);
-    private final Border nextPayoutBorder = BorderFactory.createLineBorder(Color.GREEN);
-    private final Border freeSpinBorder = BorderFactory.createLineBorder(Color.BLUE);
+    private final Border nextPayoutBorder = BorderFactory.createLineBorder(Color.WHITE);
+    private final Border freeSpinBorder = BorderFactory.createLineBorder(Color.CYAN);
     private Timer winHighlightTimer;
     private List<int[]> lastPayoutGrids;
     private BigInteger[] lastPayouts;
@@ -61,12 +57,13 @@ public class SlotGrid {
         rebuildGridCells(3);
         freeSpinsLabel = new JLabel();
         freeSpinsLabel.setForeground(Color.CYAN);
-        freeSpinsLabel.setBounds(0,  90, 50, 20);
+        freeSpinsLabel.setBorder(freeSpinBorder);
+        freeSpinsLabel.setBounds(110,  90, 30, 20);
         freeSpinsLabel.setFont(new Font("Arial", Font.BOLD, 18));
         freeSpinsLabel.setVisible(false);
-        currentPayoutLaneLabel = new JLabel();
+        currentPayoutLaneLabel = new PriceLabel();
         currentPayoutLaneLabel.setForeground(Color.ORANGE);
-        currentPayoutLaneLabel.setBounds(30,  235, 50, 20);
+        currentPayoutLaneLabel.setBounds(10,  215, 70, 20);
         currentPayoutLaneLabel.setFont(new Font("Arial", Font.BOLD, 18));
         currentPayoutLaneLabel.setVisible(true);
         machinePanel.add(freeSpinsLabel);
@@ -106,6 +103,7 @@ public class SlotGrid {
 
     private void resetChanceUpgradesForGridExpansion() {
         symbolGenerator.resetForGridUpgrade();
+        state.setUnlockedSymbols(0);
     }
 
     private void rebuildGridCells(int columnCount) {
@@ -122,7 +120,7 @@ public class SlotGrid {
                 yoffset += 50;
                 xoffset = 0;
             }
-            label.setBounds(75+xoffset, 170+ yoffset, 50, 50);
+            label.setBounds(75+xoffset, 150+ yoffset, 50, 50);
             label.setHorizontalAlignment(SwingConstants.CENTER);
             label.setVerticalAlignment(SwingConstants.CENTER);
             label.setBorder(normalBorder);
@@ -147,7 +145,8 @@ public class SlotGrid {
         machine.slotLevelComponent.addXp(spinAmount);
         SpinCalculator.Result result = SpinCalculator.spin(symbolGenerator, state.columns(), icons.size(),
                 state.paylines(), spinAmount, state.pet().getMulti(), state.level(), state.hasFreeSpins(),
-                sevenSymbolsUnlocked, tier4SymbolsUnlocked, tier3SymbolsUnlocked, tier2SymbolsUnlocked);
+                state.isUnlocked(MachineState.SymbolTier.SEVEN), state.isUnlocked(MachineState.SymbolTier.TIER4),
+                state.isUnlocked(MachineState.SymbolTier.TIER3), state.isUnlocked(MachineState.SymbolTier.TIER2));
         for (int i = 0; i < currentSlotGrid.length; i++) {
             int symbol = result.symbols()[i];
             currentSlotGrid[i] = symbol;
@@ -212,7 +211,7 @@ public class SlotGrid {
                 payoutGridHighlightLoopCounter++;
             }
             currentPayoutLaneLabel.setVisible(true);
-            currentPayoutLaneLabel.setText(winAmount.toString());
+            currentPayoutLaneLabel.setCoins(winAmount);
         });
         winHighlightTimer.setRepeats(lastPayoutGrids.size() > 1);
         winHighlightTimer.start();

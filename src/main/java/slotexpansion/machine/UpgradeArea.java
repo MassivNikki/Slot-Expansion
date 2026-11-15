@@ -1,20 +1,22 @@
 package slotexpansion.machine;
 
-import slotexpansion.app.Application;
+import slotexpansion.machine.MachineState.SymbolTier;
 import slotexpansion.ui.CasinoUpgradeButton;
 import slotexpansion.ui.CustomTabbedPaneUI;
 
 import javax.swing.*;
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.math.BigInteger;
 import java.util.EnumMap;
 import java.util.Map;
 
 /** Displays the upgrades for one machine; their effects are handled by UpgradeManager. */
-public class UpgradeArea extends JFrame {
+public class UpgradeArea extends JPanel {
     enum Upgrade { SEVEN, TIER4, TIER3, TIER2, TIER1, X2, PAYLINE }
 
     private final Map<Upgrade, CasinoUpgradeButton> buttons = new EnumMap<>(Upgrade.class);
+    private final Map<SymbolTier, CasinoUpgradeButton> unlockButtons = new EnumMap<>(SymbolTier.class);
     private final Map<Upgrade, Integer> purchases = new EnumMap<>(Upgrade.class);
     private final SlotGrid grid;
     private final SlotMachine machine;
@@ -30,16 +32,11 @@ public class UpgradeArea extends JFrame {
         this.grid = grid;
         this.machine = machine;
         upgradeManager = new UpgradeManager(grid, this);
-        setSize(350, 300);
-        setLocation(Application.mainFrame.getX() + 35,
-                Application.mainFrame.getY() + machine.machinePanel.getHeight() / 2);
-        setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
-        setResizable(false);
+        setLayout(new BorderLayout());
         tabs.setUI(new CustomTabbedPaneUI());
-        getContentPane().setBackground(Color.darkGray);
-        increasePanel.setBackground(Color.darkGray);
-        unlockPanel.setBackground(Color.darkGray);
-        setTitle("Upgrades for machine " + machine.getSlotTier());
+        setBackground(Color.decode("#04295E"));
+        increasePanel.setBackground(Color.decode("#04296E"));
+        unlockPanel.setBackground(Color.decode("#04296E"));
     }
 
     /** Creates controls from restored state after paylines and chances are loaded. */
@@ -68,16 +65,46 @@ public class UpgradeArea extends JFrame {
                 grid.getWinLanes() - addedGrids,
                 grid.getWinLanes() - addedGrids + grid.getAdditionalPaylineCount(),
                 () -> upgradeManager.addNewWinningGrid(addedGrids));
+        addUnlock(SymbolTier.TIER2, "Tier 2 symbols:", 150, 0);
+        addUnlock(SymbolTier.TIER3, "Tier 3 symbols:", 300, 1);
+        addUnlock(SymbolTier.TIER4, "Tier 4 symbols:", 600, 2);
+        addUnlock(SymbolTier.SEVEN, "7 symbols:", 800, 3);
         tabs.addTab("Increase", increasePanel);
         tabs.addTab("Unlock", unlockPanel);
-        getContentPane().add(tabs);
+        add(tabs, BorderLayout.CENTER);
         updatePurchaseAvailability();
+    }
+
+    private void addUnlock(SymbolTier tier, String title, int price, int row) {
+        CasinoUpgradeButton button = new CasinoUpgradeButton(title, BigInteger.valueOf(price),
+                machine.getSlotTier(), "Buy", 10, 10 + row * 20, unlockPanel);
+        unlockButtons.put(tier, button);
+        button.addCustomActionListener(ignored -> {
+            machine.state.unlock(tier);
+            refreshUnlock(tier);
+            updatePurchaseAvailability();
+        });
+        unlockPanel.add(button);
+        refreshUnlock(tier);
+    }
+
+    private void refreshUnlock(SymbolTier tier) {
+        CasinoUpgradeButton button = unlockButtons.get(tier);
+        boolean unlocked = machine.state.isUnlocked(tier);
+        button.setChanceLabelText(unlocked ? "Owned" : "Locked");
+        if (unlocked) {
+            button.disableUpgradable();
+        } else {
+            button.enableUpgradable();
+        }
     }
 
     private void add(Upgrade kind, String title, int basePrice, int purchased,
                      int baseline, int maximum, Runnable action) {
+        JPanel panel = kind == Upgrade.PAYLINE ? unlockPanel : increasePanel;
+        int position = kind == Upgrade.PAYLINE ? 4 : row++;
         CasinoUpgradeButton button = new CasinoUpgradeButton(title, BigInteger.valueOf(basePrice),
-                machine.getSlotTier(), "+1", 10, 10 + row++ * 20, increasePanel);
+                machine.getSlotTier(), "+1", 10, 10 + position * 20, panel);
         buttons.put(kind, button);
         int priceSteps = kind == Upgrade.PAYLINE ? purchased : purchaseCount(kind);
         for (int i = 0; i < priceSteps; i++) {
@@ -98,15 +125,20 @@ public class UpgradeArea extends JFrame {
                 updatePurchaseAvailability();
             });
         }
-        increasePanel.add(button);
+        panel.add(button);
     }
 
     CasinoUpgradeButton button(Upgrade upgrade) {
         return buttons.get(upgrade);
     }
 
+    CasinoUpgradeButton unlockButton(SymbolTier tier) {
+        return unlockButtons.get(tier);
+    }
+
     void setPurchasesEnabled(boolean enabled) {
         purchasesEnabled = enabled;
+        tabs.setEnabled(enabled);
         updatePurchaseAvailability();
     }
 
@@ -125,9 +157,19 @@ public class UpgradeArea extends JFrame {
     void updatePurchaseAvailability() {
         for (Map.Entry<Upgrade, CasinoUpgradeButton> entry : buttons.entrySet()) {
             Upgrade kind = entry.getKey();
-            boolean available = kind == Upgrade.PAYLINE || (kind != Upgrade.TIER1 && upgradeManager.canIncrease(kind));
+            SymbolTier tier = switch (kind) {
+                case SEVEN -> SymbolTier.SEVEN;
+                case TIER4 -> SymbolTier.TIER4;
+                case TIER3 -> SymbolTier.TIER3;
+                case TIER2 -> SymbolTier.TIER2;
+                default -> null;
+            };
+            boolean available = (tier == null || machine.state.isUnlocked(tier))
+                    && (kind == Upgrade.PAYLINE || (kind != Upgrade.TIER1 && upgradeManager.canIncrease(kind)));
             entry.getValue().setEnabled(purchasesEnabled && available);
         }
+        unlockButtons.forEach((tier, button) ->
+                button.setEnabled(purchasesEnabled && !machine.state.isUnlocked(tier)));
     }
 
     void resetForGridExpansion() {
@@ -137,6 +179,10 @@ public class UpgradeArea extends JFrame {
             button.resetPrice();
             button.enableUpgradable();
         }
+        unlockButtons.forEach((tier, button) -> {
+            button.resetPrice();
+            refreshUnlock(tier);
+        });
         button(Upgrade.SEVEN).setChanceLabelText(SymbolChanceConfig.BASE_SEVEN_CHANCE + "/" + SymbolChanceConfig.MAX_SEVEN_CHANCE + "%");
         button(Upgrade.TIER4).setChanceLabelText(SymbolChanceConfig.BASE_TIER4_CHANCE + "/" + SymbolChanceConfig.MAX_TIER4_CHANCE + "%");
         button(Upgrade.TIER3).setChanceLabelText(SymbolChanceConfig.BASE_TIER3_CHANCE + "/" + SymbolChanceConfig.MAX_TIER3_CHANCE + "%");

@@ -82,20 +82,23 @@ final class SlotSymbolGenerator {
             boolean tier3SymbolsUnlocked,
             boolean tier2SymbolsUnlocked) {
         int boundary = x2Chance + SymbolChanceConfig.BASE_SEVEN_CHANCE + additionalSevenSymbolChance;
-        if (chance < boundary && sevenSymbolsUnlocked) {
-            return symbolCount - 2;
+        if (chance < boundary) {
+            return sevenSymbolsUnlocked ? symbolCount - 2 : random.nextInt(1, symbolCount - 9);
         }
         boundary += tier4;
-        if (chance < boundary && tier4SymbolsUnlocked) {
-            return random.nextInt(symbolCount - 4, symbolCount - 2);
+        if (chance < boundary) {
+            return tier4SymbolsUnlocked ? random.nextInt(symbolCount - 4, symbolCount - 2)
+                    : random.nextInt(1, symbolCount - 9);
         }
         boundary += tier3;
-        if (chance < boundary && tier3SymbolsUnlocked) {
-            return random.nextInt(symbolCount - 6, symbolCount - 4);
+        if (chance < boundary) {
+            return tier3SymbolsUnlocked ? random.nextInt(symbolCount - 6, symbolCount - 4)
+                    : random.nextInt(1, symbolCount - 9);
         }
         boundary += tier2;
-        if (chance < boundary && tier2SymbolsUnlocked) {
-            return random.nextInt(symbolCount - 9, symbolCount - 6);
+        if (chance < boundary) {
+            return tier2SymbolsUnlocked ? random.nextInt(symbolCount - 9, symbolCount - 6)
+                    : random.nextInt(1, symbolCount - 9);
         }
         boundary += tier1;
         if (chance < boundary) {

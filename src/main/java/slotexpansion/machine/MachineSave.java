@@ -28,6 +28,7 @@ import java.math.BigInteger;
  * @param tier3Purchases tier-three purchase count
  * @param tier2Purchases tier-two purchase count
  * @param x2Purchases x2 purchase count
+ * @param unlockedSymbols bit mask of purchased symbol tiers
  */
 public record MachineSave(BigInteger balance, int level, BigInteger xp,
                           int sevenChance, int tier4Chance, int tier3Chance, int tier2Chance,
@@ -35,7 +36,7 @@ public record MachineSave(BigInteger balance, int level, BigInteger xp,
                           int columns, int autoCooldown, int manualCooldown,
                           boolean autoUnlocked, int minUpgrades, int maxUpgrades,
                           int sevenPurchases, int tier4Purchases, int tier3Purchases,
-                          int tier2Purchases, int x2Purchases) {
+                          int tier2Purchases, int x2Purchases, int unlockedSymbols) {
     /** Validates the snapshot before it is saved or applied. */
     public MachineSave {
         int maxPaylines = switch (columns) {
@@ -55,7 +56,8 @@ public record MachineSave(BigInteger balance, int level, BigInteger xp,
                 || sevenPurchases < sevenChance || tier4Purchases < Math.max(0, tier4Chance)
                 || tier3Purchases < Math.max(0, tier3Chance) || tier2Purchases < Math.max(0, tier2Chance)
                 || x2Purchases < x2Chance || sevenPurchases > 10000 || tier4Purchases > 10000
-                || tier3Purchases > 10000 || tier2Purchases > 10000 || x2Purchases > 10000) {
+                || tier3Purchases > 10000 || tier2Purchases > 10000 || x2Purchases > 10000
+                || unlockedSymbols < 0 || unlockedSymbols > 15) {
             throw new IllegalArgumentException("Machine state contains values outside supported ranges");
         }
     }
@@ -69,7 +71,7 @@ public record MachineSave(BigInteger balance, int level, BigInteger xp,
         this(balance, level, xp, sevenChance, tier4Chance, tier3Chance, tier2Chance,
                 tier1Chance, x2Chance, addedPaylines, petTier, columns, autoCooldown, manualCooldown,
                 autoUnlocked, minUpgrades, maxUpgrades, sevenChance, Math.max(0, tier4Chance),
-                Math.max(0, tier3Chance), Math.max(0, tier2Chance), x2Chance);
+                Math.max(0, tier3Chance), Math.max(0, tier2Chance), x2Chance, 0);
     }
 
     /**
@@ -82,15 +84,16 @@ public record MachineSave(BigInteger balance, int level, BigInteger xp,
     }
 
     /**
-     * Parses the legacy 17-column format and the extended format with purchase counters.
+     * Parses legacy 17- and 22-field records and the current format.
      * @param line one comma-separated machine record
      * @return the validated machine state
      * @throws IllegalArgumentException if the record is malformed or out of range
      */
     public static MachineSave parse(String line) {
         String[] v = line.split(",", -1);
-        if ((v.length != 17 && v.length != 22) || !(v[14].equals("true") || v[14].equals("false"))) {
-            throw new IllegalArgumentException("Expected 17 or 22 save fields and a boolean auto-spin flag");
+        if ((v.length != 17 && v.length != 22 && v.length != 23)
+                || !(v[14].equals("true") || v[14].equals("false"))) {
+            throw new IllegalArgumentException("Expected 17, 22, or 23 save fields and a boolean auto-spin flag");
         }
         MachineSave legacy = new MachineSave(new BigInteger(v[0]), Integer.parseInt(v[1]), new BigInteger(v[2]),
                 Integer.parseInt(v[3]), Integer.parseInt(v[4]), Integer.parseInt(v[5]),
@@ -106,7 +109,8 @@ public record MachineSave(BigInteger balance, int level, BigInteger xp,
                 legacy.x2Chance, legacy.addedPaylines, legacy.petTier, legacy.columns,
                 legacy.autoCooldown, legacy.manualCooldown, legacy.autoUnlocked, legacy.minUpgrades,
                 legacy.maxUpgrades, Integer.parseInt(v[17]), Integer.parseInt(v[18]),
-                Integer.parseInt(v[19]), Integer.parseInt(v[20]), Integer.parseInt(v[21]));
+                Integer.parseInt(v[19]), Integer.parseInt(v[20]), Integer.parseInt(v[21]),
+                v.length == 23 ? Integer.parseInt(v[22]) : 0);
     }
 
     /**
@@ -121,6 +125,7 @@ public record MachineSave(BigInteger balance, int level, BigInteger xp,
                 Integer.toString(autoCooldown), Integer.toString(manualCooldown), Boolean.toString(autoUnlocked),
                 Integer.toString(minUpgrades), Integer.toString(maxUpgrades),
                 Integer.toString(sevenPurchases), Integer.toString(tier4Purchases),
-                Integer.toString(tier3Purchases), Integer.toString(tier2Purchases), Integer.toString(x2Purchases));
+                Integer.toString(tier3Purchases), Integer.toString(tier2Purchases), Integer.toString(x2Purchases),
+                Integer.toString(unlockedSymbols));
     }
 }

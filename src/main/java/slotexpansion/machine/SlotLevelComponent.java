@@ -13,7 +13,7 @@ import java.math.RoundingMode;
  * Displays one machine's level, current experience, and progress to the next level.
  */
 public class SlotLevelComponent extends JComponent {
-    private final JLabel slotLevelLabel = new JLabel();
+    private final PriceLabel slotLevelLabel = new PriceLabel();
     private final JProgressBar progressBar = new JProgressBar();
     private final PriceLabel currentXpLabel = new PriceLabel();
     private final PriceLabel nextLevelXpLabel = new PriceLabel();
@@ -62,7 +62,7 @@ public class SlotLevelComponent extends JComponent {
     /** Sets the displayed level and recalculates its next-level requirement. */
     public void setSlotLevel(int level) {
         machine.state.setLevel(level);
-        slotLevelLabel.setText(String.valueOf(level));
+        slotLevelLabel.setCoins(BigInteger.valueOf(level));
         calculateNextLevelXpAmount();
     }
 
@@ -88,13 +88,11 @@ public class SlotLevelComponent extends JComponent {
         // Continue leveling while the remaining experience reaches each threshold.
         while (amountForLevelUp.compareTo(machine.state.xp()) <= 0) {
             levelUpCheckActive = true;
-            machine.state.setLevel(machine.state.level() + 1);
+            setSlotLevel(machine.state.level() + 1);
             setSlotXp(machine.state.xp().subtract(amountForLevelUp));
-            calculateNextLevelXpAmount();
             machine.choosePetForLevelUp();
         }
         levelUpCheckActive = false;
-        slotLevelLabel.setText(String.valueOf(machine.state.level()));
         calculateProgressBar();
     }
 
