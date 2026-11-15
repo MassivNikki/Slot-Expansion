@@ -10,14 +10,14 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 import java.util.logging.Logger;
 
 /**
- * Owns one machine's symbols, paylines, probability upgrades, and spin outcomes.
+ * Coordinates one machine's grid display, paylines, and spin outcomes.
  *
  * <p>Grid arrays and paylines use row-major positions, with {@code columnCount}
- * consecutive cells in each displayed row.</p>
+ * consecutive cells in each displayed row. Symbol generation and chance
+ * upgrades are handled by {@link SlotSymbolGenerator}.</p>
  */
 public class SlotGrid {
     private static final Logger LOGGER = Logger.getLogger(SlotGrid.class.getName());
@@ -39,14 +39,9 @@ public class SlotGrid {
     private int[] currentWin4Symbol;
     private int[] currentWin5Symbol;
     private final JPanel machinePanel;
+    private final SlotSymbolGenerator symbolGenerator = new SlotSymbolGenerator();
     private final ArrayList<String> imageNames = new ArrayList<>(
             Arrays.asList("donner", "jack", "queen", "king", "kirsche", "orange", "zitrone", "leaf", "bell", "bar", "stern", "seven", "x2"));
-    private int additionalSevenSymbolChance = 0;
-    private int additionalTier4SymbolChance = 0;
-    private int additionalTier3SymbolChance = 0;
-    private int additionalTier2SymbolChance = 0;
-    private int tier1SymbolChance = 51;
-    private int additionalX2SymbolChance = 0;
     private boolean freeSpinsActivated = false;
     private int freeSpinsLeft = 0;
 
@@ -71,7 +66,6 @@ public class SlotGrid {
     private final Border freeSpinBorder = BorderFactory.createLineBorder(Color.BLUE);
     private List<int[]> winningGrids;
     private List<int[]> currentAdditionalWinningGrid;
-    private final Random rand = new Random();
     private Timer winHighlightTimer;
     private List<int[]> lastPayoutGrids;
     private BigInteger[] lastPayouts;
@@ -87,7 +81,7 @@ public class SlotGrid {
         winningGrids = getTier1WinningGrids();
         currentAdditionalWinningGrid = getAdditionalTier1WinningGrids();
         Application.generateIconsFromFolder(imageNames,icons,"SlotImages",50);
-        generateSlotGridWithImages(3);
+        rebuildGridCells(3);
         freeSpinsLabel = new JLabel();
         freeSpinsLabel.setForeground(Color.CYAN);
         freeSpinsLabel.setBounds(0,  90, 50, 20);
@@ -108,235 +102,31 @@ public class SlotGrid {
     }
 
     private List<int[]> getTier1WinningGrids() {
-        return new ArrayList<>(Arrays.asList(
-                new int[]{1, 1, 1,
-                        0, 0, 0,
-                        0, 0, 0,},
-                new int[]{0, 0, 0,
-                        1, 1, 1,
-                        0, 0, 0,},
-                new int[]{0, 0, 0,
-                        0, 0, 0,
-                        1, 1, 1,},
-                new int[]{1, 0, 0,
-                        0, 1, 0,
-                        0, 0, 1,},
-                new int[]{0, 0, 1,
-                        0, 1, 0,
-                        1, 0, 0,}
-
-        ));
+        return SlotPaylineLayouts.baseForColumnCount(3);
     }
 
     private List<int[]> getTier2WinningGrids() {
-        return new ArrayList<>(Arrays.asList(
-                new int[]{1, 1, 1, 1,
-                        0, 0, 0, 0,
-                        0, 0, 0, 0},
-                new int[]{0, 0, 0, 0,
-                        1, 1, 1, 1,
-                        0, 0, 0, 0},
-                new int[]{0, 0, 0, 0,
-                        0, 0, 0, 0,
-                        1, 1, 1, 1},
-                new int[]{1, 0, 0, 1,
-                        0, 1, 1, 0,
-                        0, 0, 0, 0},
-                new int[]{0, 0, 0, 0,
-                        1, 0, 0, 1,
-                        0, 1, 1, 0},
-                new int[]{0, 0, 0, 0,
-                        0, 1, 1, 0,
-                        1, 0, 0, 1},
-                new int[]{0, 1, 1, 0,
-                        1, 0, 0, 1,
-                        0, 0, 0, 0},
-                new int[]{1, 0, 0, 0,
-                        0, 1, 1, 0,
-                        0, 0, 0, 1},
-                new int[]{0, 0, 0, 1,
-                        0, 1, 1, 0,
-                        1, 0, 0, 0}
-        ));
+        return SlotPaylineLayouts.baseForColumnCount(4);
     }
 
     private List<int[]> getTier3WinningGrids() {
-        return new ArrayList<>(Arrays.asList(
-                new int[]{1, 1, 1, 1, 1,
-                        0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0},
-                new int[]{0, 0, 0, 0, 0,
-                        1, 1, 1, 1, 1,
-                        0, 0, 0, 0, 0},
-                new int[]{0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0,
-                        1, 1, 1, 1, 1},
-                new int[]{1, 0, 0, 0, 1,
-                        0, 1, 0, 1, 0,
-                        0, 0, 1, 0, 0},
-                new int[]{0, 0, 1, 0, 0,
-                        0, 1, 0, 1, 0,
-                        1, 0, 0, 0, 1},
-                new int[]{0, 1, 1, 1, 0,
-                        1, 0, 0, 0, 1,
-                        0, 0, 0, 0, 0},
-                new int[]{0, 0, 0, 0, 0,
-                        1, 0, 0, 0, 1,
-                        0, 1, 1, 1, 0},
-                new int[]{0, 0, 0, 0, 1,
-                        0, 1, 1, 1, 0,
-                        1, 0, 0, 0, 0},
-                new int[]{0, 0, 0, 0, 0,
-                        0, 1, 1, 1, 0,
-                        1, 0, 0, 0, 1},
-                new int[]{1, 0, 0, 0, 1,
-                        0, 1, 1, 1, 0,
-                        0, 0, 0, 0, 0},
-                new int[]{1, 0, 0, 0, 0,
-                        0, 1, 1, 1, 0,
-                        0, 0, 0, 0, 1},
-                new int[]{0, 1, 1, 1, 0,
-                        0, 0, 0, 0, 0,
-                        1, 0, 0, 0, 1},
-                new int[]{1, 0, 0, 0, 1,
-                        0, 0, 0, 0, 0,
-                        0, 1, 1, 1, 0},
-                new int[]{0, 0, 0, 1, 1,
-                        0, 0, 1, 0, 0,
-                        1, 1, 0, 0, 0},
-                new int[]{1, 1, 0, 0, 0,
-                        0, 0, 1, 0, 0,
-                        0, 0, 0, 1, 1}
-        ));
+        return SlotPaylineLayouts.baseForColumnCount(5);
     }
 
     /** Returns the optional paylines for the initial 3-by-3 grid. */
     public List<int[]> getAdditionalTier1WinningGrids() {
-        return new ArrayList<>(Arrays.asList(
-                new int[]{0, 1, 0,
-                        1, 0, 1,
-                        0, 0, 0,},
-                new int[]{0, 0, 0,
-                        0, 1, 0,
-                        1, 0, 1,},
-                new int[]{1, 0, 1,
-                        0, 1, 0,
-                        0, 0, 0,},
-                new int[]{0, 0, 0,
-                        1, 0, 1,
-                        0, 1, 0,}));
+        return SlotPaylineLayouts.additionalForColumnCount(3);
     }
 
     /** Returns the optional paylines for the 3-by-4 grid. */
     public List<int[]> getAdditionalTier2WinningGrids() {
-        return new ArrayList<>(Arrays.asList(
-                new int[]{0, 1, 1, 0,
-                        0, 0, 0, 0,
-                        1, 0, 0, 1},
-                new int[]{1, 0, 0, 1,
-                        0, 0, 0, 0,
-                        0, 1, 1, 0},
-                new int[]{0, 0, 0, 0,
-                        0, 1, 0, 1,
-                        1, 0, 1, 0},
-                new int[]{0, 1, 0, 1,
-                        1, 0, 1, 0,
-                        0, 0, 0, 0},
-                new int[]{0, 1, 0, 1,
-                        0, 0, 0, 0,
-                        1, 0, 1, 0},
-                new int[]{1, 0, 1, 0,
-                        0, 1, 0, 1,
-                        0, 0, 0, 0},
-                new int[]{0, 0, 0, 0,
-                        1, 0, 1, 0,
-                        0, 1, 0, 1},
-                new int[]{1, 0, 1, 0,
-                        0, 0, 0, 0,
-                        0, 1, 0, 1},
-                new int[]{0, 0, 1, 1,
-                        0, 0, 0, 0,
-                        1, 1, 0, 0},
-                new int[]{1, 1, 0, 0,
-                        0, 0, 0, 0,
-                        0, 0, 1, 1}));
+        return SlotPaylineLayouts.additionalForColumnCount(4);
     }
 
     /** Returns the optional paylines for the 3-by-5 grid. */
     public List<int[]> getAdditionalTier3WinningGrids() {
-        return new ArrayList<>(Arrays.asList(new int[]{1, 1, 0, 1, 1,
-                        0, 0, 1, 0, 0,
-                        0, 0, 0, 0, 0},
-
-                new int[]{0, 0, 0, 0, 0,
-                        0, 0, 1, 0, 0,
-                        1, 1, 0, 1, 1},
-
-                new int[]{0, 0, 1, 0, 0,
-                        1, 1, 0, 1, 1,
-                        0, 0, 0, 0, 0},
-
-                new int[]{0, 0, 0, 0, 0,
-                        1, 1, 0, 1, 1,
-                        0, 0, 1, 0, 0},
-
-                new int[]{1, 0, 1, 0, 1,
-                        0, 1, 0, 1, 0,
-                        0, 0, 0, 0, 0},
-
-                new int[]{0, 0, 0, 0, 0,
-                        1, 0, 1, 0, 1,
-                        0, 1, 0, 1, 0},
-
-                new int[]{0, 1, 0, 1, 0,
-                        1, 0, 1, 0, 1,
-                        0, 0, 0, 0, 0},
-
-                new int[]{0, 0, 0, 0, 0,
-                        0, 1, 0, 1, 0,
-                        1, 0, 1, 0, 1},
-
-                new int[]{1, 0, 1, 0, 1,
-                        0, 0, 0, 0, 0,
-                        0, 1, 0, 1, 0},
-
-                new int[]{0, 1, 0, 1, 0,
-                        0, 0, 0, 0, 0,
-                        1, 0, 1, 0, 1},
-
-                new int[]{1, 1, 0, 1, 1,
-                        0, 0, 0, 0, 0,
-                        0, 0, 1, 0, 0},
-
-                new int[]{0, 0, 1, 0, 0,
-                        0, 0, 0, 0, 0,
-                        1, 1, 0, 1, 1},
-
-                new int[]{1, 0, 0, 0, 1,
-                        0, 0, 1, 0, 0,
-                        0, 1, 0, 1, 0},
-
-                new int[]{0, 1, 0, 1, 0,
-                        0, 0, 1, 0, 0,
-                        1, 0, 0, 0, 1},
-
-                new int[]{0, 1, 0, 1, 0,
-                        1, 0, 0, 0, 1,
-                        0, 0, 1, 0, 0},
-
-                new int[]{0, 0, 1, 0, 0,
-                        1, 0, 0, 0, 1,
-                        0, 1, 0, 1, 0},
-
-                new int[]{0, 1, 0, 0, 0,
-                        1, 0, 1, 0, 1,
-                        0, 0, 0, 1, 0},
-
-                new int[]{0, 0, 0, 1, 0,
-                        1, 0, 1, 0, 1,
-                        0, 1, 0, 0, 0}));
+        return SlotPaylineLayouts.additionalForColumnCount(5);
     }
-
     /** Activates one of the currently available optional paylines. */
     public void addNewWinningGrid(int newGrid) {
         winningGrids.add(currentAdditionalWinningGrid.get(newGrid));
@@ -355,8 +145,8 @@ public class SlotGrid {
             currentWin4Symbol = tier2Win4Symbol;
             winningGrids = getTier2WinningGrids();
             currentAdditionalWinningGrid = getAdditionalTier2WinningGrids();
-            generateSlotGridWithImages(4);
-            resetAllChances();
+            rebuildGridCells(4);
+            resetChanceUpgradesForGridExpansion();
         } else {
             currentSlotGrid = tier3SlotGrid;
             currentWin3Symbol = tier3Win3Symbol;
@@ -364,21 +154,16 @@ public class SlotGrid {
             currentWin5Symbol = tier3Win5Symbol;
             winningGrids = getTier3WinningGrids();
             currentAdditionalWinningGrid = getAdditionalTier3WinningGrids();
-            generateSlotGridWithImages(5);
-            resetAllChances();
+            rebuildGridCells(5);
+            resetChanceUpgradesForGridExpansion();
         }
     }
 
-    private void resetAllChances() {
-        additionalSevenSymbolChance = 0;
-        additionalTier4SymbolChance = 0;
-        additionalTier3SymbolChance = 0;
-        additionalTier2SymbolChance = 0;
-        tier1SymbolChance = 53;
-        additionalX2SymbolChance = 0;
+    private void resetChanceUpgradesForGridExpansion() {
+        symbolGenerator.resetForGridUpgrade();
     }
 
-    private void generateSlotGridWithImages(int columnCount) {
+    private void rebuildGridCells(int columnCount) {
         int xoffset = 0;
         int yoffset = 0;
         labels.forEach(machinePanel::remove);
@@ -404,40 +189,6 @@ public class SlotGrid {
         labels.getFirst().setIcon(icons.getFirst());
     }
 
-    private int calculateSlotSymbol(int currentSpot) {
-        // The cumulative symbol bands shift as chance upgrades are purchased.
-        int chance = rand.nextInt(0, 100);
-        if (!isX2Symbol(currentSpot, chance)) {
-            if (chance < 5 + additionalX2SymbolChance + additionalSevenSymbolChance && sevenSymbolsUnlocked) {
-                return icons.size() - 2;
-            } else if (chance < 11 + additionalX2SymbolChance + additionalSevenSymbolChance + additionalTier4SymbolChance && tier4SymbolsUnlocked) {
-                return randomInt(icons.size() - 4, icons.size()) - 2;
-            } else if (chance < 23 + additionalX2SymbolChance + additionalSevenSymbolChance + additionalTier4SymbolChance + additionalTier3SymbolChance && tier3SymbolsUnlocked) {
-                return randomInt(icons.size() - 6, icons.size() - 4);
-            } else if (chance < 43 + additionalX2SymbolChance + additionalSevenSymbolChance + additionalTier4SymbolChance + additionalTier3SymbolChance + additionalTier2SymbolChance && tier2SymbolsUnlocked) {
-                return randomInt(icons.size() - 9, icons.size() - 6);
-            } else if (chance < 94) {
-                return randomInt(1, icons.size() - 9);
-            } else return 0;
-        } else return icons.size() - 1;
-    }
-
-    private boolean isX2Symbol(int currentSpot, int chance) {
-        // Multiplier symbols are excluded from the first and last column.
-        if (columnCount == 3) {
-            return chance < 2 + additionalX2SymbolChance
-                    && currentSpot != 0 && currentSpot != 3 && currentSpot != 6
-                    && currentSpot != 2 && currentSpot != 5 && currentSpot != 8;
-        } else if (columnCount == 4) {
-            return chance < 2 + additionalX2SymbolChance
-                    && currentSpot != 0 && currentSpot != 4 && currentSpot != 8
-                    && currentSpot != 3 && currentSpot != 7 && currentSpot != 11;
-        }
-        return chance < 2 + additionalX2SymbolChance
-                && currentSpot != 0 && currentSpot != 5 && currentSpot != 10
-                && currentSpot != 4 && currentSpot != 9 && currentSpot != 14;
-    }
-
     /** Generates one outcome and settles its stake, winnings, and free spins. */
     public BigInteger spinSlotMachine(BigInteger spinAmount) {
         if (winHighlightTimer != null) {
@@ -451,7 +202,9 @@ public class SlotGrid {
 
         machine.slotLevelComponent.addXp(spinAmount);
         for (int i = 0; i < currentSlotGrid.length; i++) {
-            int symbol = calculateSlotSymbol(i);
+            int symbol = symbolGenerator.rollSymbol(i, columnCount, icons.size(),
+                    sevenSymbolsUnlocked, tier4SymbolsUnlocked,
+                    tier3SymbolsUnlocked, tier2SymbolsUnlocked);
             currentSlotGrid[i] = symbol;
             labels.get(i).setIcon(icons.get(symbol));
         }
@@ -465,7 +218,7 @@ public class SlotGrid {
             if (freeSpinsLeft == 0) {
                 freeSpinsActivated = false;
                 freeSpinsLabel.setVisible(false);
-                additionalX2SymbolChance /= 3;
+                symbolGenerator.removeFreeSpinX2ChanceMultiplier();
             }
         }
         BigInteger win = calculateTotalWin(spinAmount);
@@ -694,14 +447,14 @@ public class SlotGrid {
         }
         if (freeSpinSymbolAmount == 3) {
             if (!freeSpinsActivated) {
-                additionalX2SymbolChance *= 3;
+                symbolGenerator.applyFreeSpinX2ChanceMultiplier();
             }
             freeSpinsLeft += 10;
             return true;
             // Each thunder symbol beyond three adds another ten free spins.
         } else if (freeSpinSymbolAmount > 3) {
             if (!freeSpinsActivated) {
-                additionalX2SymbolChance *= 3;
+                symbolGenerator.applyFreeSpinX2ChanceMultiplier();
             }
             freeSpinsLeft += (freeSpinSymbolAmount - 3) * 10 + 10;
             return true;
@@ -709,57 +462,52 @@ public class SlotGrid {
         return false;
     }
 
-    /** Returns an integer from {@code [begin, end)}. */
-    private int randomInt(int begin, int end) {
-        return rand.nextInt(begin, end);
-    }
-
     public int getTier1SymbolChance() {
-        return tier1SymbolChance;
+        return symbolGenerator.getTier1SymbolChance();
     }
 
     public void setTier1SymbolChance(int tier1SymbolChance) {
-        this.tier1SymbolChance = tier1SymbolChance;
+        symbolGenerator.setTier1SymbolChance(tier1SymbolChance);
     }
 
     public int getAdditionalTier3SymbolChance() {
-        return additionalTier3SymbolChance;
+        return symbolGenerator.getAdditionalTier3SymbolChance();
     }
 
     public void setAdditionalTier3SymbolChance(int additionalTier3SymbolChance) {
-        this.additionalTier3SymbolChance = additionalTier3SymbolChance;
+        symbolGenerator.setAdditionalTier3SymbolChance(additionalTier3SymbolChance);
     }
 
     public int getAdditionalTier2SymbolChance() {
-        return additionalTier2SymbolChance;
+        return symbolGenerator.getAdditionalTier2SymbolChance();
     }
 
     public void setAdditionalTier2SymbolChance(int additionalTier2SymbolChance) {
-        this.additionalTier2SymbolChance = additionalTier2SymbolChance;
+        symbolGenerator.setAdditionalTier2SymbolChance(additionalTier2SymbolChance);
     }
 
     public int getAdditionalSevenSymbolChance() {
-        return additionalSevenSymbolChance;
+        return symbolGenerator.getAdditionalSevenSymbolChance();
     }
 
     public void setAdditionalSevenSymbolChance(int additionalSevenSymbolChance) {
-        this.additionalSevenSymbolChance = additionalSevenSymbolChance;
+        symbolGenerator.setAdditionalSevenSymbolChance(additionalSevenSymbolChance);
     }
 
     public int getAdditionalTier4SymbolChance() {
-        return additionalTier4SymbolChance;
+        return symbolGenerator.getAdditionalTier4SymbolChance();
     }
 
     public void setAdditionalTier4SymbolChance(int additionalTier4SymbolChance) {
-        this.additionalTier4SymbolChance = additionalTier4SymbolChance;
+        symbolGenerator.setAdditionalTier4SymbolChance(additionalTier4SymbolChance);
     }
 
     public int getAdditionalX2SymbolChance() {
-        return additionalX2SymbolChance;
+        return symbolGenerator.getAdditionalX2SymbolChance();
     }
 
     public void setAdditionalX2SymbolChance(int additionalX2SymbolChance) {
-        this.additionalX2SymbolChance = additionalX2SymbolChance;
+        symbolGenerator.setAdditionalX2SymbolChance(additionalX2SymbolChance);
     }
 
     public int getColumnCount() {

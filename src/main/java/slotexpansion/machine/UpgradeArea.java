@@ -15,7 +15,7 @@ public class UpgradeArea extends JFrame {
 
     protected final ArrayList<CasinoUpgradeButton> upgradeIncreaseButtons = new ArrayList<>();
     // Baseline probabilities in the same order as the symbol upgrade controls.
-    protected final int[] symbolOrgChances = {3, 6, 12, 20, 51, 2};
+    protected final int[] symbolOrgChances = SymbolChanceConfig.baseUpgradeChanceLabels();
     protected BigInteger sevenSymbolPrice = BigInteger.valueOf(800);
     protected BigInteger tier4SymbolPrice = BigInteger.valueOf(600);
     protected BigInteger tier3SymbolPrice = BigInteger.valueOf(300);

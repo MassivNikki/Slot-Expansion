@@ -2,6 +2,7 @@ package slotexpansion.app;
 
 import slotexpansion.machine.Pet;
 import slotexpansion.machine.SlotMachine;
+import slotexpansion.machine.SymbolChanceConfig;
 import slotexpansion.player.PlayerManager;
 import slotexpansion.ui.CasinoUpgradeButton;
 import slotexpansion.ui.MainFrame;
@@ -36,11 +37,11 @@ public class Application {
     private final String saveDataFilePath = "SaveData";
     private final ArrayList<String> savedMachineRecords = new ArrayList<>();
     public static JFrame mainFrame;
-    public static int maxSevenChance = 10;
-    public static int maxTier4Chance = 20;
-    public static int maxTier3Chance = 30;
-    public static int maxTier2Chance = 35;
-    public static int maxX2Chance = 5;
+    public static int maxSevenChance = SymbolChanceConfig.MAX_SEVEN_CHANCE;
+    public static int maxTier4Chance = SymbolChanceConfig.MAX_TIER4_CHANCE;
+    public static int maxTier3Chance = SymbolChanceConfig.MAX_TIER3_CHANCE;
+    public static int maxTier2Chance = SymbolChanceConfig.MAX_TIER2_CHANCE;
+    public static int maxX2Chance = SymbolChanceConfig.MAX_X2_CHANCE;
     private BigInteger machinePurchasePrice = BigInteger.valueOf(100000);
     private int machineCount = 0;
     private final ArrayList<Integer> machineYPositions = new ArrayList<>(Arrays.asList(60, 60, 60, 60, 550, 550, 550, 550));
