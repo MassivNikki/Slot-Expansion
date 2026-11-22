@@ -1,1 +1,2 @@
-12345678909351263,1,120,1,1,1,1,48,1,1,-1,3,1000,500,false,0,0
+# balance,slotLevel,slotXp,additionalSevenSymbolChance,additionalTier4SymbolChance,additionalTier3SymbolChance,additionalTier2SymbolChance,tier1SymbolChance,additionalX2SymbolChance,addedPaylines,petTier,columnCount,autoCooldown,manualCooldown,autoSpinUnlocked,minStakeUpgrades,maxStakeUpgrades,sevenPurchases,tier4Purchases,tier3Purchases,tier2Purchases,x2Purchases,unlockedSymbols
+1000,1,0,0,0,0,0,51,0,0,-1,3,1000,500,false,0,0,0,0,0,0,0,0

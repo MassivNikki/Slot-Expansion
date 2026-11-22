@@ -81,7 +81,8 @@ src/main/java/
 | Paylines | `SlotPaylineLayouts` | Each row-major mask must select one cell per column. `PaylineEvaluator` evaluates matching prefixes. |
 | Payouts or free-spin awards | `PaylineEvaluator` or `SpinCalculator` | `SlotGrid` applies the result to the balance and displays its winning lines. |
 | A machine upgrade | `UpgradeArea` and `UpgradeManager` | Define its cost and control, apply its effect, and include persistent state in `MachineSave` if needed. Symbol unlocks are stored in `MachineState`. |
-| Levels or pets | `SlotLevelComponent` and `Pet` | `SlotMachine` chooses pets and refreshes the auto-spin timer. |
+| Prices or milestones | `UpgradePrice` | `UpgradePurchase` applies the cost; saved purchase counts rebuild prices on load. |
+| Levels or pets | `LevelProgression`, `SlotLevelComponent`, and `Pet` | Winning payouts award XP; `SlotMachine` assigns pets and refreshes the auto-spin timer. |
 | Save data | `MachineSave` and `SaveRepository` | `SlotMachine.snapshot` and `restore` translate between saved records and the live machine. |
 | Appearance or controls | `SlotMachine`, `SlotGrid`, and `ui` | Game calculations live in the machine classes above, not the custom Swing painters. |
 
@@ -93,6 +94,18 @@ components display or update that state. For a spin, `SlotGrid` requests a
 updates the display. The payout uses the paytable, x2 symbols, pet multiplier,
 and `max(1, level / 2)` with integer division. The minimum stake remains free.
 
+Regular upgrade prices start at 15% growth per purchase; the growth rate
+increases by five percentage points on each subsequent purchase, up to 50%.
+The second machine starts at 150,000 coins, and the first grid expansion at 75,000 coins
+times the machine tier squared. Later milestones of each kind cost six times
+as much. The first machine milestone is tuned for roughly 10–20 minutes at
+about one spin per second, but luck and upgrade choices can change that.
+
+Only winning spins grant XP, equal to their payout, so larger stakes can earn
+more XP when they win. Level requirements are `500 × level³ × 1.1^(level − 1)`,
+rounded down to whole XP. Larger payouts and pets still help progression, but
+the rising requirement limits runaway leveling.
+
 Each chance upgrade takes probability from the lowest available lower tier.
 When no lower tier remains, that upgrade is disabled. A grid expansion resets
 chance upgrades, extra paylines, their purchase prices, and the pet.
@@ -102,8 +115,10 @@ only after that tier is unlocked.
 `SaveRepository` reads old 17- and 22-field records as well as current 23-field
 records. The extra fields retain purchase counts even when an upgrade's chance
 has been reduced by another upgrade. Older saves did not record that history,
-so their price counts are estimated from remaining upgrades. Older saves start
-with symbol tiers locked but retain their existing chance upgrades. Writes use a
+so their price counts are estimated from remaining upgrades. Records without
+symbol unlock flags start with tiers locked but retain their chance upgrades.
+Saves are not migrated between balancing curves; start a fresh game after
+balancing changes. Writes use a
 temporary file and an atomic replacement. Active free spins and animation are
 not saved; the permanent upgrade values are.
 

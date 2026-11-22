@@ -40,11 +40,30 @@ class SaveRepositoryTest {
     @Test
     void oldRecordsStartWithSymbolsLocked() {
         MachineSave legacy = MachineSave.parse("1234,4,10,1,2,3,4,40,1,2,3,5,800,400,true,2,3");
-        MachineSave previous = MachineSave.parse(legacy.toCsv().substring(0, legacy.toCsv().lastIndexOf(',')));
+        String oldRecord = "1234,4,10,1,2,3,4,40,1,2,3,5,800,400,true,2,3,1,2,3,4,1";
+        MachineSave previous = MachineSave.parse(oldRecord);
         assertEquals(0, legacy.unlockedSymbols());
         assertEquals(0, previous.unlockedSymbols());
         assertThrows(IllegalArgumentException.class,
-                () -> MachineSave.parse(legacy.toCsv().substring(0, legacy.toCsv().lastIndexOf(',')) + ",16"));
+                () -> MachineSave.parse(oldRecord + ",16"));
+    }
+
+    @Test
+    void currentLevelsAndXpRoundTripWithoutRecalculation() throws IOException {
+        String record = "1234,4,10,1,2,3,4,40,1,2,3,5,800,400,true,2,3,1,2,3,4,1,5";
+        Path path = directory.resolve("SaveData");
+        Files.writeString(path, record);
+        SaveRepository repository = new SaveRepository(path);
+        MachineSave saved = repository.load().getFirst();
+        assertEquals(4, saved.level());
+        assertEquals(BigInteger.TEN, saved.xp());
+        assertEquals(BigInteger.valueOf(1234), saved.balance());
+        assertEquals(3, saved.petTier());
+        assertEquals(5, saved.unlockedSymbols());
+        assertEquals(4, saved.tier2Purchases());
+        repository.save(List.of(saved));
+        assertEquals(List.of(saved), repository.load());
+        assertEquals(23, saved.toCsv().split(",").length);
     }
 
     @Test

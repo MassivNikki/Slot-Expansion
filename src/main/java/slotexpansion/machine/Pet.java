@@ -5,6 +5,7 @@ import slotexpansion.app.Application;
 import javax.swing.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 
 /**
  * Represents the pet assigned to a slot machine and its payout multiplier.
@@ -12,6 +13,7 @@ import java.util.Arrays;
 public class Pet {
 
     private static final int[] MULTIPLIERS = {2, 3, 4, 5, 7, 9, 11, 14, 17, 20, 25, 30};
+    private static final int[] CHANCE_BOUNDS = {1000, 652, 422, 272, 149, 114, 84, 59, 39, 24, 14, 7, 0};
     private int multi = 1;
     private ImageIcon icon;
     private int autoCooldownBonus = 0;
@@ -64,5 +66,15 @@ public class Pet {
 
     static int multiplierForTier(int tier) {
         return MULTIPLIERS[tier];
+    }
+
+    static int chooseTier(Random random) {
+        int roll = random.nextInt(0, 1000);
+        for (int i = 0; i < MULTIPLIERS.length; i++) {
+            if (roll < CHANCE_BOUNDS[i] && roll >= CHANCE_BOUNDS[i + 1]) {
+                return i;
+            }
+        }
+        throw new IllegalStateException("Pet roll is outside the configured ranges");
     }
 }

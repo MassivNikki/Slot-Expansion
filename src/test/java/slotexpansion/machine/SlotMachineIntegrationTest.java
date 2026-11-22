@@ -103,12 +103,12 @@ class SlotMachineIntegrationTest {
                 machine.restore(state);
                 assertFalse(machine.upgradeArea.button(UpgradeArea.Upgrade.TIER2).isEnabled());
                 CasinoUpgradeButton tier2 = machine.upgradeArea.button(UpgradeArea.Upgrade.TIER2);
-                assertEquals(BigInteger.valueOf(600), tier2.getPrice());
+                assertEquals(BigInteger.valueOf(208), tier2.getPrice());
                 machine.upgradeArea.button(UpgradeArea.Upgrade.TIER3).doClick();
                 assertEquals(1, machine.slotGrid.getAdditionalTier2SymbolChance());
-                assertEquals(BigInteger.valueOf(600), tier2.getPrice());
+                assertEquals(BigInteger.valueOf(208), tier2.getPrice());
                 restored.restore(machine.snapshot(PlayerManager.getCoins()));
-                assertEquals(BigInteger.valueOf(600), restored.upgradeArea.button(UpgradeArea.Upgrade.TIER2).getPrice());
+                assertEquals(BigInteger.valueOf(208), restored.upgradeArea.button(UpgradeArea.Upgrade.TIER2).getPrice());
                 restored.upgradeArea.upgradeManager.upgradeGrid();
                 assertEquals(BigInteger.valueOf(150), restored.upgradeArea.button(UpgradeArea.Upgrade.TIER2).getPrice());
             } finally {
@@ -183,7 +183,87 @@ class SlotMachineIntegrationTest {
                 payline.doClick();
                 assertEquals(6, machine.slotGrid.getWinLanes());
                 assertEquals(BigInteger.valueOf(400), PlayerManager.getCoins());
-                assertEquals(BigInteger.valueOf(1200), payline.getPrice());
+                assertEquals(BigInteger.valueOf(690), payline.getPrice());
+            } finally {
+                frame.dispose();
+            }
+        });
+    }
+
+    @Test
+    void onlyWinsAwardXpAndHigherStakesAwardMore() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            JFrame frame = new JFrame();
+            Application.mainFrame = frame;
+            PlayerManager.setMainFrame(frame);
+            PlayerManager.setCoins(BigInteger.valueOf(100_000));
+            ControlledRandom random = new ControlledRandom();
+            JPanel panel = new JPanel(null);
+            panel.setSize(400, 540);
+            SlotMachine machine = new SlotMachine(panel, 1, new SlotSymbolGenerator(random));
+            try {
+                machine.restore(MachineSave.newGame());
+                random.awardFreeSpins = true;
+                assertEquals(BigInteger.ZERO, machine.slotGrid.spinSlotMachine(BigInteger.valueOf(5)));
+                assertEquals(BigInteger.ZERO, machine.getSlotXp());
+            } finally {
+                frame.dispose();
+            }
+        });
+        SwingUtilities.invokeAndWait(() -> {
+            JFrame frame = new JFrame();
+            Application.mainFrame = frame;
+            PlayerManager.setMainFrame(frame);
+            PlayerManager.setCoins(BigInteger.valueOf(100_000));
+            Random fixed = new Random() {
+                @Override public int nextInt(int origin, int bound) {
+                    return origin == 0 && bound == 100 ? 5 : origin;
+                }
+            };
+            JPanel panel = new JPanel(null);
+            panel.setSize(400, 540);
+            SlotMachine machine = new SlotMachine(panel, 1, new SlotSymbolGenerator(fixed));
+            try {
+                machine.restore(MachineSave.newGame());
+                BigInteger win = machine.slotGrid.spinSlotMachine(BigInteger.valueOf(5));
+                assertEquals(BigInteger.valueOf(50), win);
+                assertEquals(win, machine.getSlotXp());
+                BigInteger largerWin = machine.slotGrid.spinSlotMachine(BigInteger.valueOf(30));
+                assertEquals(BigInteger.valueOf(300), largerWin);
+                assertEquals(win.add(largerWin), machine.getSlotXp());
+                machine.slotLevelComponent.addXp(BigInteger.valueOf(150));
+                assertEquals(2, machine.state.level());
+                assertEquals(BigInteger.ZERO, machine.getSlotXp());
+                machine.slotLevelComponent.addXp(BigInteger.valueOf(4400));
+                assertEquals(3, machine.state.level());
+                assertEquals(BigInteger.ZERO, machine.getSlotXp());
+            } finally {
+                frame.dispose();
+            }
+        });
+    }
+
+    @Test
+    void gridMilestonePriceRemainsConsistentAfterRestore() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            JFrame frame = new JFrame();
+            Application.mainFrame = frame;
+            PlayerManager.setMainFrame(frame);
+            PlayerManager.setCoins(BigInteger.valueOf(1_000_000));
+            JPanel panel = new JPanel(null);
+            panel.setSize(400, 540);
+            SlotMachine machine = new SlotMachine(panel, 1);
+            JPanel otherPanel = new JPanel(null);
+            otherPanel.setSize(400, 540);
+            SlotMachine restored = new SlotMachine(otherPanel, 1);
+            try {
+                machine.restore(MachineSave.newGame());
+                assertEquals(BigInteger.valueOf(75_000), machine.addColumnUpgradeButton.getPrice());
+                machine.addColumnUpgradeButton.doClick();
+                assertEquals(4, machine.slotGrid.getColumnCount());
+                assertEquals(BigInteger.valueOf(450_000), machine.addColumnUpgradeButton.getPrice());
+                restored.restore(machine.snapshot(PlayerManager.getCoins()));
+                assertEquals(BigInteger.valueOf(450_000), restored.addColumnUpgradeButton.getPrice());
             } finally {
                 frame.dispose();
             }

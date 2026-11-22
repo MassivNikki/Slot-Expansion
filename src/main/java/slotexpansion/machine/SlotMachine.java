@@ -26,8 +26,7 @@ public class SlotMachine {
     final UpgradeArea upgradeArea;
     final MachineState state;
     protected int slotTier = 1;
-    protected BigInteger columnUpgradePrice = BigInteger.valueOf(50000);
-    private final int[] petChances = {1000, 652, 422, 272, 149, 114, 84, 59, 39, 24, 14, 7, 0};
+    protected BigInteger columnUpgradePrice = UpgradePrice.FIRST_GRID_EXPANSION;
     private final Random petRandom = new Random();
     private int minIncreased = 0;
     private int maxIncreased = 0;
@@ -180,7 +179,7 @@ public class SlotMachine {
     private void setupGridSizeUpgrade() {
         addColumnUpgradeButton =
                 new CasinoUpgradeButton(columnUpgradePrice, slotTier, "+1",
-                        machinePanel, PriceLabelPosition.INSIDE);
+                        machinePanel, PriceLabelPosition.INSIDE, UpgradePrice.Growth.MILESTONE);
         addColumnUpgradeButton.setBounds(75 + 50 * slotGrid.getColumnCount(), 150, 50, 150);
         addColumnUpgradeButton.addCustomActionListener(e -> {
             if (slotGrid.getColumnCount() < 5) {
@@ -483,7 +482,6 @@ public class SlotMachine {
         if (wholeSpinWin.compareTo(BigInteger.valueOf(0)) == 0) {
             winLabel.setVisible(false);
         } else {
-            slotLevelComponent.addXp(wholeSpinWin);
             winLabel.setCoins(wholeSpinWin);
             winLabel.setVisible(true);
         }
@@ -491,13 +489,7 @@ public class SlotMachine {
 
     /** Samples a pet tier when this machine levels up and keeps only improvements. */
     protected void choosePetForLevelUp() {
-        int rand = petRandom.nextInt(0, 1000);
-        int tier = -1;
-        for (int i = 0; i < petChances.length - 1; i++) {
-            if (rand < petChances[i] && rand >= petChances[i + 1]) {
-                tier = i;
-            }
-        }
+        int tier = Pet.chooseTier(petRandom);
         if (Pet.multiplierForTier(tier) > state.pet().getMulti()) {
             state.pet().setTier(tier);
             setPetImage(state.pet().getIcon());

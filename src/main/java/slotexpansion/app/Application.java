@@ -2,6 +2,7 @@ package slotexpansion.app;
 
 import slotexpansion.machine.MachineSave;
 import slotexpansion.machine.SlotMachine;
+import slotexpansion.machine.UpgradePrice;
 import slotexpansion.player.PlayerManager;
 import slotexpansion.ui.CasinoUpgradeButton;
 import slotexpansion.ui.MainFrame;
@@ -30,7 +31,7 @@ public class Application {
     private final JPanel machineCanvas = new JPanel(null);
     private final SaveRepository saveRepository;
     public static JFrame mainFrame;
-    private BigInteger machinePurchasePrice = BigInteger.valueOf(100000);
+    private BigInteger machinePurchasePrice = UpgradePrice.FIRST_MACHINE_UNLOCK;
     private int machineCount = 0;
     private final ArrayList<SlotMachine> machines;
 
@@ -75,11 +76,11 @@ public class Application {
     }
 
     private void initializeMachinePrice() {
+        UpgradePrice price = new UpgradePrice(machinePurchasePrice, 1, UpgradePrice.Growth.MILESTONE);
         for (int purchasedTier = 1; purchasedTier < machineCount; purchasedTier++) {
-            machinePurchasePrice = machinePurchasePrice
-                    .multiply(BigInteger.valueOf(2))
-                    .multiply(BigInteger.valueOf(purchasedTier).pow(2));
+            price.advance();
         }
+        machinePurchasePrice = price.current();
     }
 
     private void loadSavedMachines(List<MachineSave> records) {
@@ -150,8 +151,8 @@ public class Application {
         machines.add(new SlotMachine(machinePanels.getLast(), machines.size() + 1));
         if (machines.size() == machineCount && machineCount < 8) {
             CasinoUpgradeButton newMachineButton =
-                    new CasinoUpgradeButton(machinePurchasePrice, machines.getLast().getSlotTier(), "<html>Add<br>New<br>Machine</html>"
-                            , machineCanvas, PriceLabelPosition.UNDER);
+                    new CasinoUpgradeButton(machinePurchasePrice, 1, "<html>Add<br>New<br>Machine</html>",
+                            machineCanvas, PriceLabelPosition.UNDER, UpgradePrice.Growth.MILESTONE);
             newMachineButton.addCustomActionListener(e -> {
                 machineCount++;
                 resizeMainFrame();

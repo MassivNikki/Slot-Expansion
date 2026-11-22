@@ -1,6 +1,7 @@
 package slotexpansion.ui;
 
 import slotexpansion.machine.UpgradePurchase;
+import slotexpansion.machine.UpgradePrice;
 
 import javax.swing.*;
 import java.awt.*;
@@ -47,10 +48,15 @@ public class CasinoUpgradeButton extends CasinoButton {
     }
 
     public CasinoUpgradeButton(BigInteger price, int slotTier, String increment, Container frame, int priceLabelPosition) {
+        this(price, slotTier, increment, frame, priceLabelPosition, UpgradePrice.Growth.REGULAR);
+    }
+
+    public CasinoUpgradeButton(BigInteger price, int slotTier, String increment, Container frame,
+                               int priceLabelPosition, UpgradePrice.Growth growth) {
         super(increment);
         position = priceLabelPosition;
         colorBackground();
-        purchase = new UpgradePurchase(price, slotTier);
+        purchase = new UpgradePurchase(price, slotTier, growth);
         priceLabel = new PriceLabel();
         refreshPrice();
         frame.add(priceLabel);

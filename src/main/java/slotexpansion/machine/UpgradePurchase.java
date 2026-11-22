@@ -17,6 +17,16 @@ public final class UpgradePurchase {
     }
 
     /**
+     * Creates a purchase with a specific price growth rule.
+     * @param basePrice cost on a tier-one machine
+     * @param machineTier machine number used for price scaling
+     * @param growth price growth rule
+     */
+    public UpgradePurchase(BigInteger basePrice, int machineTier, UpgradePrice.Growth growth) {
+        price = new UpgradePrice(basePrice, machineTier, growth);
+    }
+
+    /**
      * Charges the balance, advances the price, and applies the effect if affordable.
      * @param effect upgrade action
      * @return true when the purchase was affordable

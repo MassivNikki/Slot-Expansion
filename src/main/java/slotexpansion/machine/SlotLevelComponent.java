@@ -20,7 +20,6 @@ public class SlotLevelComponent extends JComponent {
     private final JPanel machinePanel;
     private int progressBarWidth;
     private BigInteger amountForLevelUp;
-    private boolean levelUpCheckActive = false;
     private final SlotMachine machine;
 
     public SlotLevelComponent(JPanel machinePanel, SlotMachine machine) {
@@ -69,38 +68,29 @@ public class SlotLevelComponent extends JComponent {
     /** Replaces the machine's experience and checks whether it has leveled up. */
     public void setSlotXp(BigInteger xp) {
         machine.state.setXp(xp);
-        currentXpLabel.updateFormat(machine.state.xp());
-        if (!levelUpCheckActive) {
-            checkForLevelUp();
-        }
+        checkForLevelUp();
     }
 
     /** Adds spin experience and processes any levels earned by that amount. */
     public void addXp(BigInteger amount){
         machine.state.setXp(machine.state.xp().add(amount));
-        currentXpLabel.updateFormat(machine.state.xp());
-        if (!levelUpCheckActive) {
-            checkForLevelUp();
-        }
+        checkForLevelUp();
     }
 
     protected void checkForLevelUp() {
         // Continue leveling while the remaining experience reaches each threshold.
         while (amountForLevelUp.compareTo(machine.state.xp()) <= 0) {
-            levelUpCheckActive = true;
+            machine.state.setXp(machine.state.xp().subtract(amountForLevelUp));
             setSlotLevel(machine.state.level() + 1);
-            setSlotXp(machine.state.xp().subtract(amountForLevelUp));
             machine.choosePetForLevelUp();
         }
-        levelUpCheckActive = false;
+        currentXpLabel.updateFormat(machine.state.xp());
         calculateProgressBar();
     }
 
 
     protected void calculateNextLevelXpAmount() {
-        // A quadratic threshold keeps early levels attainable while requiring more XP over time.
-        BigInteger level = BigInteger.valueOf(machine.state.level());
-        amountForLevelUp = level.multiply(level).multiply(BigInteger.valueOf(200));
+        amountForLevelUp = LevelProgression.requirement(machine.state.level());
         nextLevelXpLabel.updateFormat(amountForLevelUp);
     }
 

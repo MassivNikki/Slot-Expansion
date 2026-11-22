@@ -142,7 +142,6 @@ public class SlotGrid {
         currentPayoutLaneLabel.setVisible(false);
         resetLabelBorders();
 
-        machine.slotLevelComponent.addXp(spinAmount);
         SpinCalculator.Result result = SpinCalculator.spin(symbolGenerator, state.columns(), icons.size(),
                 state.paylines(), spinAmount, state.pet().getMulti(), state.level(), state.hasFreeSpins(),
                 state.isUnlocked(MachineState.SymbolTier.SEVEN), state.isUnlocked(MachineState.SymbolTier.TIER4),
@@ -166,6 +165,7 @@ public class SlotGrid {
         BigInteger win = result.totalPayout();
         if (win.signum() > 0) {
             PlayerManager.increaseCoins(win);
+            machine.slotLevelComponent.addXp(win);
             for (SpinCalculator.WinningLine line : result.wins()) {
                 addPayoutGrid(line.matches(), line.payline(), line.payout());
             }
