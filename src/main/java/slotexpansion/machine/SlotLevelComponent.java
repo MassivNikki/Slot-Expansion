@@ -34,7 +34,7 @@ public class SlotLevelComponent extends JComponent {
         setSlotLevel(1);
         setSlotXp(BigInteger.valueOf(0));
         slotLevelLabel.setForeground(Color.GREEN);
-        slotLevelLabel.setBounds( progressBarWidth / 2, 0, 50, 20);
+        slotLevelLabel.setBounds( progressBarWidth / 2 - 25, 0, 50, 20);
         slotLevelLabel.setFont(new Font("Arial", Font.BOLD, 15));
         machinePanel.add(slotLevelLabel);
 

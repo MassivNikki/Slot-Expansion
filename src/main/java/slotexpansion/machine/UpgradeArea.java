@@ -35,8 +35,8 @@ public class UpgradeArea extends JPanel {
         setLayout(new BorderLayout());
         tabs.setUI(new CustomTabbedPaneUI());
         setBackground(Color.decode("#04295E"));
-        increasePanel.setBackground(Color.decode("#04296E"));
-        unlockPanel.setBackground(Color.decode("#04296E"));
+        increasePanel.setBackground(Color.decode("#042971"));
+        unlockPanel.setBackground(Color.decode("#042971"));
     }
 
     /** Creates controls from restored state after paylines and chances are loaded. */

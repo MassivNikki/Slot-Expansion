@@ -37,8 +37,8 @@ public class SlotGrid {
     private final List<JLabel> labels = new ArrayList<>();
     private final ArrayList<ImageIcon> icons = new ArrayList<>();
     private final Border normalBorder = BorderFactory.createLineBorder(Color.black);
-    private final Border winningLineBorder = BorderFactory.createLineBorder(Color.YELLOW);
-    private final Border nextPayoutBorder = BorderFactory.createLineBorder(Color.WHITE);
+    private final Border winningLineBorder = BorderFactory.createLineBorder(Color.YELLOW,2);
+    private final Border nextPayoutBorder = BorderFactory.createLineBorder(Color.GRAY,2);
     private final Border freeSpinBorder = BorderFactory.createLineBorder(Color.CYAN);
     private Timer winHighlightTimer;
     private List<int[]> lastPayoutGrids;

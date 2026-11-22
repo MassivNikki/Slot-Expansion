@@ -40,6 +40,7 @@ public class CustomTabbedPaneUI extends BasicTabbedPaneUI {
         int width = tabPane.getWidth();
         int height = tabPane.getHeight();
 
+        g2d.setBackground(Color.DARK_GRAY);
         g2d.setColor(Color.DARK_GRAY);
         g2d.dispose();
     }
